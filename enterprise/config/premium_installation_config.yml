@@ -2,11 +2,11 @@
 - name: INSTALLATION_NAME
   value: 'SOOR'
 - name: LOGO_THUMBNAIL
-  value: '/brand-assets/logo_thumbnail.svg'
+  value: '/brand-assets/logo_thumbnail.svg?v=soor-v4.16.0'
 - name: LOGO
-  value: '/brand-assets/logo.svg'
+  value: '/brand-assets/logo.svg?v=soor-v4.16.0'
 - name: LOGO_DARK
-  value: '/brand-assets/logo_dark.svg'
+  value: '/brand-assets/logo_dark.svg?v=soor-v4.16.0'
 - name: BRAND_URL
   value: 'https://bysoor.com/'
 - name: WIDGET_BRAND_URL
