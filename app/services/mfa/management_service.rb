@@ -23,7 +23,7 @@ class Mfa::ManagementService
   def two_factor_provisioning_uri
     return nil if user.otp_secret.blank?
 
-    issuer = 'Chatwoot'
+    issuer = 'SOOR'
     label = user.email
     user.otp_provisioning_uri(label, issuer: issuer)
   end
@@ -76,6 +76,10 @@ class Mfa::ManagementService
 
   def backup_codes_generated?
     user.otp_backup_codes.present?
+  end
+
+  def remaining_backup_codes_count
+    Array(user.otp_backup_codes).count { |code| code != 'XXXXXXXX' }
   end
 
   def mfa_enabled?

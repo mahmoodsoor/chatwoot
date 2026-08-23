@@ -1,22 +1,22 @@
 # ------- Branding Related Config ------- #
 - name: INSTALLATION_NAME
-  value: 'Chatwoot'
+  value: 'SOOR'
 - name: LOGO_THUMBNAIL
-  value: '/brand-assets/logo_thumbnail.svg'
+  value: '/brand-assets/logo_thumbnail.svg?v=soor-v4.16.0'
 - name: LOGO
-  value: '/brand-assets/logo.svg'
+  value: '/brand-assets/logo.svg?v=soor-v4.16.0'
 - name: LOGO_DARK
-  value: '/brand-assets/logo_dark.svg'
+  value: '/brand-assets/logo_dark.svg?v=soor-v4.16.0'
 - name: BRAND_URL
-  value: 'https://www.chatwoot.com'
+  value: 'https://bysoor.com/'
 - name: WIDGET_BRAND_URL
-  value: 'https://www.chatwoot.com'
+  value: 'https://bysoor.com/'
 - name: BRAND_NAME
-  value: 'Chatwoot'
+  value: 'SOOR'
 - name: TERMS_URL
-  value: 'https://www.chatwoot.com/terms-of-service'
+  value: 'https://bysoor.com/terms-and-conditions/'
 - name: PRIVACY_URL
-  value: 'https://www.chatwoot.com/privacy-policy'
+  value: 'https://bysoor.com/privacy-policy/'
 - name: DISPLAY_MANIFEST
   value: true
 # ------- End of Branding Related Config ------- #

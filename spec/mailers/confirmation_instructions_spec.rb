@@ -40,7 +40,7 @@ RSpec.describe 'Devise::Mailer' do
 
     it 'shows the default confirmation state' do
       expect(mail_body).to include('Confirm your email to get started')
-      expect(mail_body).to include('Welcome to Chatwoot. We just need to verify your email address before you can start using your account.')
+      expect(mail_body).to include('Welcome to SOOR. We just need to verify your email address before you can start using your account.')
       expect(mail_body).to include('Confirm my account')
       expect(mail_body).not_to include('Workspace invitation')
     end
@@ -50,12 +50,16 @@ RSpec.describe 'Devise::Mailer' do
       expect(mail.body).not_to include('app/auth/password/edit')
     end
 
+    it 'does not render the agent notification preferences footer' do
+      expect(mail_body).not_to include('Manage notification preferences')
+    end
+
     context 'when there is an inviter' do
       let(:inviter_val) { create(:user, :administrator, skip_confirmation: true, account: account) }
 
       it 'refers to the inviter and their account' do
         expect(mail_body).to include("You're invited to join #{account.name}")
-        expect(mail_body).to include("#{inviter_val.name} invited you to join the #{account.name} workspace on Chatwoot.")
+        expect(mail_body).to include("#{inviter_val.name} invited you to join the #{account.name} workspace on SOOR.")
         expect(mail_body).to include('Accept invitation')
         expect(mail_body).not_to include('Confirm your email to get started')
       end
