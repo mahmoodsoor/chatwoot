@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useStore } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import {
@@ -30,11 +31,36 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const route = useRoute();
 const store = useStore();
 const callsStore = useCallsStore();
 const whatsappCallSession = useWhatsappCallSession();
 const contactsUiFlags = useMapGetter('contacts/getUIFlags');
 const { isCloudFeatureEnabled } = useAccount();
+const soorEnabledInboxId = ref(null);
+
+watch(
+  [() => props.inbox?.id, () => route.params.accountId],
+  async ([inboxId, accountId]) => {
+    soorEnabledInboxId.value = null;
+    if (
+      !inboxId ||
+      !accountId ||
+      props.inbox?.channel_type !== 'Channel::Whatsapp'
+    )
+      return;
+
+    try {
+      const { data } = await window.axios.get(
+        `/api/v1/accounts/${accountId}/soor_whatsapp_calls`
+      );
+      soorEnabledInboxId.value = data.inbox_id;
+    } catch (_) {
+      // Keep calling hidden when this inbox is not configured or accessible.
+    }
+  },
+  { immediate: true }
+);
 
 const voiceCallProvider = computed(() => getVoiceCallProvider(props.inbox));
 const isVoiceCallInbox = computed(
@@ -46,8 +72,7 @@ const isSoorWhatsappInbox = computed(
   () =>
     props.inbox?.channel_type === 'Channel::Whatsapp' &&
     props.inbox?.provider === 'whatsapp_cloud' &&
-    props.inbox?.soor_whatsapp_calling_enabled === true &&
-    !isVoiceCallInbox.value
+    Number(props.inbox?.id) === Number(soorEnabledInboxId.value)
 );
 const isWhatsappVoiceInbox = computed(
   () => voiceCallProvider.value === VOICE_CALL_PROVIDERS.WHATSAPP

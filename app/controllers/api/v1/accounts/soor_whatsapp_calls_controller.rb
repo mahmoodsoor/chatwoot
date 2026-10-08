@@ -4,7 +4,7 @@ class Api::V1::Accounts::SoorWhatsappCallsController < Api::V1::Accounts::BaseCo
   before_action :load_call, only: %i[show accept reject terminate]
 
   def index
-    render json: { calls: calling.list.map { |call| serialize(call) } }
+    render json: { inbox_id: @inbox.id, calls: calling.list.map { |call| serialize(call) } }
   end
 
   def show
