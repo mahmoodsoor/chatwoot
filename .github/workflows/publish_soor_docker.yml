@@ -3,7 +3,7 @@ name: Publish SOOR Docker image
 on:
   push:
     branches:
-      - soor-brand-v4.17.0
+      - soor-whatsapp-calling-v4.18
   workflow_dispatch:
 
 env:
@@ -39,7 +39,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=soor-v4.17.0
+            type=raw,value=soor-v4.18.0-calling
             type=raw,value=soor-latest
 
       - name: Build and publish

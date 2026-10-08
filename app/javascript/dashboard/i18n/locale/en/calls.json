@@ -1,4 +1,28 @@
 {
+  "SOOR_CALLS": {
+    "TITLE": "WhatsApp call",
+    "PAGE_TITLE": "WhatsApp calls",
+    "NO_CALLS": "No calls yet.",
+    "UNKNOWN_CUSTOMER": "Customer",
+    "INCOMING_FROM": "Incoming from {caller}",
+    "CONNECTED": "Connected",
+    "RINGING": "Ringing",
+    "ANSWER": "Answer",
+    "DECLINE": "Decline",
+    "END": "End call",
+    "DISMISS": "Dismiss",
+    "OPEN_CONVERSATION": "Open conversation",
+    "OUTCOME_LABEL": "Call outcome (private note)",
+    "OUTCOME_PLACEHOLDER": "What happened on the call?",
+    "SAVE_OUTCOME": "Save private note",
+    "CLOSE": "Close",
+    "NO_CONVERSATION": "No linked conversation was found for this caller.",
+    "AUDIO_BLOCKED": "Click the call panel to enable audio.",
+    "START_FAILED": "Could not start WhatsApp call.",
+    "ANSWER_FAILED": "Could not answer WhatsApp call.",
+    "END_FAILED": "Could not end WhatsApp call.",
+    "NOTE_FAILED": "Could not save the private note."
+  },
   "CALLS_PAGE": {
     "HEADER": "Calls",
     "ALL_CALLS": "All Calls",

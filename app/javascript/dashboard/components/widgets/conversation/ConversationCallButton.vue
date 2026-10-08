@@ -42,6 +42,13 @@ const isVoiceCallInbox = computed(
     voiceCallProvider.value !== null &&
     isCloudFeatureEnabled(FEATURE_FLAGS.CHANNEL_VOICE)
 );
+const isSoorWhatsappInbox = computed(
+  () =>
+    props.inbox?.channel_type === 'Channel::Whatsapp' &&
+    props.inbox?.provider === 'whatsapp_cloud' &&
+    props.inbox?.soor_whatsapp_calling_enabled === true &&
+    !isVoiceCallInbox.value
+);
 const isWhatsappVoiceInbox = computed(
   () => voiceCallProvider.value === VOICE_CALL_PROVIDERS.WHATSAPP
 );
@@ -61,7 +68,7 @@ const isCallButtonLoading = computed(() =>
 );
 
 const callButtonTooltip = computed(() =>
-  isWhatsappVoiceInbox.value
+  isWhatsappVoiceInbox.value || isSoorWhatsappInbox.value
     ? t('CONVERSATION.HEADER.WHATSAPP_CALL')
     : t('CONVERSATION.HEADER.VOICE_CALL')
 );
@@ -123,14 +130,25 @@ const startTwilioCall = async () => {
 };
 
 const startCall = () => {
-  if (isWhatsappVoiceInbox.value) return startWhatsappCall();
-  return startTwilioCall();
+  if (isSoorWhatsappInbox.value) {
+    window.dispatchEvent(
+      new CustomEvent('soor-whatsapp-call-start', {
+        detail: { conversationId: props.chat.id },
+      })
+    );
+    return;
+  }
+  if (isWhatsappVoiceInbox.value) {
+    startWhatsappCall();
+    return;
+  }
+  startTwilioCall();
 };
 </script>
 
 <template>
   <NextButton
-    v-if="isVoiceCallInbox"
+    v-if="isVoiceCallInbox || isSoorWhatsappInbox"
     v-tooltip.bottom="callButtonTooltip"
     sm
     ghost

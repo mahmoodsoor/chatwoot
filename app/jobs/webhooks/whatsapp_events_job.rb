@@ -13,6 +13,11 @@ class Webhooks::WhatsappEventsJob < MutexApplicationJob
       return
     end
 
+    if params.dig(:entry, 0, :changes, 0, :field) == 'calls'
+      Soor::WhatsappCalling.new(channel).receive(params) if Soor::WhatsappCalling.enabled_for?(channel)
+      return
+    end
+
     sender_id = contact_sender_id(params)
     return process_events(channel, params) if sender_id.blank?
 

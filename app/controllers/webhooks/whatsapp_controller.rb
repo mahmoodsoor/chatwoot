@@ -43,6 +43,7 @@ class Webhooks::WhatsappController < ActionController::API
   end
 
   def meta_signature_verification_required?
+    return true if params.dig(:entry, 0, :changes, 0, :field) == 'calls'
     return true if whatsapp_channel.blank?
     return false unless whatsapp_channel.provider == 'whatsapp_cloud'
     return true if channel_meta_app_secrets(whatsapp_channel).present?

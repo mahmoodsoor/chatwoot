@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { until } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -53,6 +53,21 @@ const isFetching = computed(() => callHistoryStore.uiFlags.isFetching);
 const accountUiFlags = useMapGetter('accounts/getUIFlags');
 
 const isInitializing = ref(true);
+const soorCalls = ref([]);
+const soorEnabled = ref(false);
+let soorPollTimer;
+
+const fetchSoorCalls = async () => {
+  try {
+    const { data } = await window.axios.get(
+      `/api/v1/accounts/${accountId.value}/soor_whatsapp_calls`
+    );
+    soorCalls.value = data.calls;
+    soorEnabled.value = true;
+  } catch (_) {
+    soorEnabled.value = false;
+  }
+};
 
 // Filters are seeded from the URL so a shared link restores the same view.
 const activity = ref(
@@ -107,6 +122,11 @@ onMounted(async () => {
       store.dispatch('inboxes/get'),
       until(() => accountUiFlags.value.isFetchingItem).toBe(false),
     ]);
+    await fetchSoorCalls();
+    if (soorEnabled.value) {
+      soorPollTimer = setInterval(fetchSoorCalls, 5000);
+      return;
+    }
     if (!isVoiceEnabled.value) return;
     // Only admins see the assignee filter, so only they need the agent list.
     if (isAdmin.value) store.dispatch('agents/get');
@@ -115,6 +135,7 @@ onMounted(async () => {
     isInitializing.value = false;
   }
 });
+onUnmounted(() => clearInterval(soorPollTimer));
 </script>
 
 <template>
@@ -124,6 +145,44 @@ onMounted(async () => {
   >
     <Spinner :size="24" />
   </div>
+  <section
+    v-else-if="soorEnabled"
+    class="h-full overflow-y-auto bg-n-surface-1 p-6"
+  >
+    <h1 class="mb-6 text-xl font-medium text-n-slate-12">
+      {{ t('SOOR_CALLS.PAGE_TITLE') }}
+    </h1>
+    <p v-if="!soorCalls.length" class="text-n-slate-11">
+      {{ t('SOOR_CALLS.NO_CALLS') }}
+    </p>
+    <div
+      v-for="call in soorCalls"
+      :key="call.id"
+      class="border-b border-n-weak py-4"
+    >
+      <div class="font-medium text-n-slate-12">
+        {{
+          t(
+            call.direction === 'inbound'
+              ? 'CALLS_PAGE.STATUS.INCOMING'
+              : 'CALLS_PAGE.STATUS.OUTGOING'
+          )
+        }}
+        ·
+        {{ call.caller || call.recipient || t('SOOR_CALLS.UNKNOWN_CUSTOMER') }}
+      </div>
+      <div class="text-sm text-n-slate-11">
+        {{ call.status }} · {{ new Date(call.created_at).toLocaleString() }}
+      </div>
+      <a
+        v-if="call.conversation_display_id"
+        class="text-sm text-n-brand"
+        :href="`/app/accounts/${accountId}/conversations/${call.conversation_display_id}`"
+      >
+        {{ t('SOOR_CALLS.OPEN_CONVERSATION') }}
+      </a>
+    </div>
+  </section>
   <CallsEmptyState v-else-if="!isVoiceEnabled" />
   <section
     v-else
