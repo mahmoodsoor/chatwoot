@@ -40,15 +40,10 @@ const { isCloudFeatureEnabled } = useAccount();
 const soorEnabledInboxId = ref(null);
 
 watch(
-  [() => props.inbox?.id, () => route.params.accountId],
+  [() => props.chat?.inbox_id, () => route.params.accountId],
   async ([inboxId, accountId]) => {
     soorEnabledInboxId.value = null;
-    if (
-      !inboxId ||
-      !accountId ||
-      props.inbox?.channel_type !== 'Channel::Whatsapp'
-    )
-      return;
+    if (!inboxId || !accountId) return;
 
     try {
       const { data } = await window.axios.get(
@@ -70,9 +65,8 @@ const isVoiceCallInbox = computed(
 );
 const isSoorWhatsappInbox = computed(
   () =>
-    props.inbox?.channel_type === 'Channel::Whatsapp' &&
-    props.inbox?.provider === 'whatsapp_cloud' &&
-    Number(props.inbox?.id) === Number(soorEnabledInboxId.value)
+    soorEnabledInboxId.value !== null &&
+    Number(props.chat?.inbox_id) === Number(soorEnabledInboxId.value)
 );
 const isWhatsappVoiceInbox = computed(
   () => voiceCallProvider.value === VOICE_CALL_PROVIDERS.WHATSAPP
