@@ -159,6 +159,21 @@ RSpec.describe 'Webhooks::WhatsappController', type: :request do
       expect(response).to have_http_status(:success)
     end
 
+    it 'accepts signed call webhooks using the environment secret without global configuration' do
+      allow(GlobalConfigService).to receive(:load).with('WHATSAPP_APP_SECRET', nil).and_return(nil)
+      allow(Webhooks::WhatsappEventsJob).to receive(:perform_later)
+
+      call_body = {
+        object: 'whatsapp_business_account',
+        entry: [{ changes: [{ field: 'calls', value: { metadata: { phone_number_id: channel.provider_config['phone_number_id'] }, calls: [] } }] }]
+      }.to_json
+
+      post_whatsapp_webhook("/webhooks/whatsapp/#{channel.phone_number}", call_body)
+
+      expect(response).to have_http_status(:ok)
+      expect(Webhooks::WhatsappEventsJob).to have_received(:perform_later)
+    end
+
     it 'accepts webhook payloads signed with the channel app secret' do
       channel_secret = 'channel-whatsapp-secret'
       channel.provider_config = channel.provider_config.merge('app_secret' => channel_secret)

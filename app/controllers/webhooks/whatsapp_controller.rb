@@ -34,8 +34,9 @@ class Webhooks::WhatsappController < ActionController::API
   def meta_app_secrets
     [
       *channel_meta_app_secrets(whatsapp_channel),
+      ENV['WHATSAPP_APP_SECRET'],
       GlobalConfigService.load('WHATSAPP_APP_SECRET', nil)
-    ]
+    ].compact_blank.uniq
   end
 
   def whatsapp_channel
