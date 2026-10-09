@@ -56,7 +56,7 @@ class Api::V1::Accounts::SoorWhatsappCallsController < Api::V1::Accounts::BaseCo
 
   def load_call
     id = params[:id].to_s
-    raise ActiveRecord::RecordNotFound unless id.match?(/\A[a-zA-Z0-9_.-]{1,200}\z/)
+    raise ActiveRecord::RecordNotFound unless id.match?(/\A[a-zA-Z0-9_.=+-]{1,200}\z/)
 
     @call = calling.find(id)
     raise ActiveRecord::RecordNotFound unless @call
