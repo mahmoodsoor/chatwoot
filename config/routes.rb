@@ -291,7 +291,8 @@ Rails.application.routes.draw do
 
           # SOOR's independent WhatsApp Calling API. This does not use the
           # licensed Chatwoot Voice Channel implementation above.
-          resources :soor_whatsapp_calls, only: [:index, :show] do
+          # Meta call IDs contain dots; the default Rails :id segment rejects them.
+          resources :soor_whatsapp_calls, only: [:index, :show], constraints: { id: /[^\/]+/ } do
             collection { post :initiate }
             member do
               post :accept
