@@ -118,12 +118,12 @@ const onPageChange = page => {
 
 onMounted(async () => {
   try {
-    await store.dispatch('inboxes/get');
     await fetchSoorCalls();
     if (soorEnabled.value) {
       soorPollTimer = setInterval(fetchSoorCalls, 5000);
       return;
     }
+    await store.dispatch('inboxes/get');
     await until(() => accountUiFlags.value.isFetchingItem).toBe(false);
     if (!isVoiceEnabled.value) return;
     // Only admins see the assignee filter, so only they need the agent list.
