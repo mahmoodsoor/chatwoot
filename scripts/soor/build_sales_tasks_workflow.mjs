@@ -29,7 +29,10 @@ contacts.id = 'soor-sales-read-contacts';
 contacts.name = 'Read recent registered contacts';
 contacts.position = [280, 0];
 contacts.parameters.url = 'https://www.zohoapis.com/crm/v8/Contacts';
-contacts.parameters.jsonQuery = JSON.stringify({ per_page: 100, page: 1, sort_by: 'Created_Time', sort_order: 'desc' });
+contacts.parameters.jsonQuery = JSON.stringify({
+  fields: 'id,First_Name,Last_Name,Mobile,Phone,Email,External_User_ID,Created_Time',
+  per_page: 100, page: 1, sort_by: 'Created_Time', sort_order: 'desc',
+});
 delete contacts.parameters.options.batching;
 
 const prepare = code('Prepare registered contacts', `
@@ -42,8 +45,11 @@ for(const r of response.body.data){
   if(!r.External_User_ID)continue;
   if(seen.has(r.id))throw Error('DUPLICATE_ZOHO_CONTACT');seen.add(r.id);
   const number=phone(r.Mobile)||phone(r.Phone);
-  const email=typeof r.Email==='string'&&r.Email.includes('@')?r.Email.trim().toLowerCase():null;
-  const fullName=String(r.Full_Name||[r.First_Name,r.Last_Name].filter(Boolean).join(' ')||'').trim();
+  const candidateEmail=typeof r.Email==='string'?r.Email.trim().toLowerCase():'';
+  const email=/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(candidateEmail)&&candidateEmail.length<=254&&!candidateEmail.endsWith('@temp.soor.com')?candidateEmail:null;
+  const first=String(r.First_Name||'').trim(),last=String(r.Last_Name||'').trim();
+  const placeholder=first.toLowerCase()==='user'&&/^\\+?\\d{8,15}$/.test(last);
+  const fullName=placeholder?'':[first,last].filter(Boolean).join(' ');
   const name=fullName&&fullName.toLowerCase()!=='user'?fullName:(number||email||'SOOR customer');
   out.push({json:{contact:{zoho_contact_id:String(r.id),customer_name:name.slice(0,180),phone_number:number,email,registered_at:r.Created_Time||null},path:'/Contacts/'+r.id+'/vehicleuser1',query:{page:1,per_page:200}}});
 }
@@ -54,6 +60,7 @@ const vehicles = clone('Read related vehicles');
 vehicles.id = 'soor-sales-read-vehicles';
 vehicles.name = 'Read registered contact vehicles';
 vehicles.position = [840, 0];
+vehicles.parameters.jsonQuery = '={{ JSON.stringify({...$json.query, fields: "id,make,model,year,plateNumber,registrationExpiryDate,registrationStatus,vehicleuser"}) }}';
 
 const batches = code('Build task batches', `
 const inputs=$('Prepare registered contacts').all().map(i=>i.json),results=$input.all().map(i=>i.json);
