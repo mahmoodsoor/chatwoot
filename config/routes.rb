@@ -155,6 +155,10 @@ Rails.application.routes.draw do
             end
           end
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
+          resources :soor_sales_tasks, only: [:index, :update] do
+            post :sync, on: :collection
+            post :open_conversation, on: :member
+          end
           namespace :channels do
             resource :twilio_channel, only: [:create]
           end

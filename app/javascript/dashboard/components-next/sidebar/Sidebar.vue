@@ -594,6 +594,13 @@ const menuItems = computed(() => {
         ]
       : []),
     {
+      name: 'Sales Tasks',
+      label: t('SIDEBAR.SOOR_SALES_TASKS'),
+      icon: 'i-lucide-list-checks',
+      to: accountScopedRoute('soor_sales_tasks_index'),
+      activeOn: ['soor_sales_tasks_index'],
+    },
+    {
       name: 'Contacts',
       label: t('SIDEBAR.CONTACTS'),
       icon: 'i-lucide-contact',
