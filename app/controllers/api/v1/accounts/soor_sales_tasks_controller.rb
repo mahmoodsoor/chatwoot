@@ -55,7 +55,7 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       task.last_updated_at = Time.current
       task.save!
       content = "Sales task update · #{task.task_type.humanize} · #{task.stage.humanize}"
-      content += "\nDue: #{task.due_at.in_time_zone.strftime('%d %b %Y, %H:%M')}" if task.due_at
+      content += "\nDue: #{task.due_at.in_time_zone('Asia/Bahrain').strftime('%d %b %Y, %H:%M %Z')}" if task.due_at
       content += "\nOwner: #{task.assignee&.name || 'Unassigned'}"
       content += "\n#{outcome}" if outcome.present?
       Messages::MessageBuilder.new(Current.user, conversation, { content: content, private: true, message_type: 'outgoing' }).perform
