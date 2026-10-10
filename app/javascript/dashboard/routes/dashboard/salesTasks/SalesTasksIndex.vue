@@ -279,19 +279,28 @@ onMounted(() => {
           <tr
             v-for="task in tasks"
             :key="task.id"
-            class="border-b border-n-weak hover:bg-n-alpha-1"
+            class="cursor-pointer border-b border-n-weak hover:bg-n-alpha-1"
+            @click="open(task)"
           >
             <td class="px-6 py-4">
               <button
                 type="button"
                 class="font-medium text-n-slate-12 hover:underline"
-                @click="open(task)"
+                @click.stop="open(task)"
               >
                 {{ task.customer_name }}
               </button>
               <div class="mt-1 text-xs text-n-slate-10">
                 {{ task.phone_number || task.email }}
               </div>
+              <button
+                type="button"
+                class="mt-3 rounded-lg border border-n-brand bg-n-brand/10 px-3 py-1.5 text-xs font-semibold text-n-brand hover:bg-n-brand/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
+                :aria-label="`${t('SOOR_SALES_TASKS.WORK_TASK')}: ${task.customer_name}`"
+                @click.stop="open(task)"
+              >
+                {{ t('SOOR_SALES_TASKS.WORK_TASK') }}
+              </button>
             </td>
             <td class="px-4 py-4 text-n-slate-12">
               {{ carLabel(task) }}

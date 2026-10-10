@@ -18,6 +18,7 @@
     "SAVE_FAILED": "Couldn't save this update. Nothing was sent to the customer.",
     "SAVED": "Update saved as a private note.",
     "CUSTOMER": "Customer",
+    "WORK_TASK": "Work task",
     "CAR": "Car",
     "TASK": "Next task",
     "STAGE": "Stage",
