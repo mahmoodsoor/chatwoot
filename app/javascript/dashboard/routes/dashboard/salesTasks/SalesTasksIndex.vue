@@ -283,7 +283,7 @@ onMounted(() => {
             <th class="w-44 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.DUE') }}
             </th>
-            <th class="w-24 px-4 py-3 font-semibold">
+            <th class="sticky right-0 z-20 w-24 border-l border-n-weak bg-n-solid-2 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.ACTION') }}
             </th>
           </tr>
@@ -352,7 +352,7 @@ onMounted(() => {
                   : t('SOOR_SALES_TASKS.NO_DUE')
               }}
             </td>
-            <td class="px-4 py-3">
+            <td class="sticky right-0 z-10 border-l border-n-weak bg-n-solid-1 px-4 py-3">
               <button
                 type="button"
                 class="rounded-md border border-n-weak bg-n-solid-1 px-3 py-1.5 text-xs font-semibold text-n-brand shadow-sm hover:border-n-brand hover:bg-n-brand/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
