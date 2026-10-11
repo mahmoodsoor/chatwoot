@@ -53,6 +53,16 @@ const isIncoming = computed(
 const isOutgoing = computed(
   () => props.state === VOICE_CALL_DIRECTION.OUTGOING
 );
+const isWhatsappIncoming = computed(
+  () =>
+    isIncoming.value && props.call?.provider === VOICE_CALL_PROVIDERS.WHATSAPP
+);
+const soorIncomingTheme = {
+  '--call-widget': '199, 247, 91, 1',
+  '--call-widget-border': '141, 181, 39, 1',
+  '--call-widget-text': '28, 48, 9, 1',
+  '--call-widget-sub-text': '50, 72, 18, 1',
+};
 
 const statusIcon = computed(() => {
   if (isOngoing.value) return 'i-ph-phone-call-bold';
@@ -77,6 +87,7 @@ const channelIcon = computed(() => {
   <div
     class="flex flex-col gap-1 pt-4 bg-n-call-widget rounded-2xl shadow-xl outline outline-1 outline-n-call-widget-border backdrop-blur-md"
     :class="call?.conversationId ? 'pb-2' : 'pb-4'"
+    :style="isWhatsappIncoming ? soorIncomingTheme : undefined"
   >
     <!-- Top section: status badge + location/inbox + duration -->
     <div class="flex flex-col gap-3 pb-3 border-b border-n-call-widget-border">
@@ -118,8 +129,15 @@ const channelIcon = computed(() => {
         </p>
         <!-- Incoming/Outgoing: status badge on right -->
         <div v-else class="flex items-center gap-1.5 shrink-0">
-          <Icon :icon="statusIcon" class="size-3.5 text-n-teal-9 shrink-0" />
-          <span class="text-xs font-medium text-n-teal-9 tracking-tight">
+          <Icon
+            :icon="statusIcon"
+            class="size-3.5 shrink-0"
+            :class="isWhatsappIncoming ? 'text-[#214817]' : 'text-n-teal-9'"
+          />
+          <span
+            class="text-xs font-medium tracking-tight"
+            :class="isWhatsappIncoming ? 'text-[#214817]' : 'text-n-teal-9'"
+          >
             {{ statusLabel }}
           </span>
           <!-- Dismiss: removes the notification from the UI without declining.

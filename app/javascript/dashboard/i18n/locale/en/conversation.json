@@ -408,6 +408,7 @@
       "HANDLED_IN_ANOTHER_TAB": "Being handled in another tab",
       "REJECT_CALL": "Reject",
       "DISMISS_CALL": "Dismiss",
+      "ENABLE_RINGTONE": "Enable ringtone",
       "JOIN_CALL": "Join call",
       "END_CALL": "End call",
       "MUTE": "Mute mic",

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { useCallSession } from 'dashboard/composables/useCallSession';
@@ -203,15 +203,28 @@ watch(
 // down. The watcher only fires on the boolean transitioning, so additional
 // ringing calls arriving while one is already ringing don't restart the audio
 // — they silently stack into the UI without producing a fresh ring.
-// Browser autoplay may reject the first play() if the tab has no prior
-// user gesture; that's fine — the visual widget still surfaces the call.
+// Browser autoplay may reject the first play() on a fresh tab; surface a
+// one-click sound control while keeping the call alert visible.
 const ringtone = new Audio(RINGTONE_URL);
 ringtone.loop = true;
 ringtone.volume = 1;
+const soundBlocked = ref(false);
 
 const stopRingtone = () => {
   ringtone.pause();
   ringtone.currentTime = 0;
+  soundBlocked.value = false;
+};
+
+const playRingtone = async () => {
+  try {
+    await ringtone.play();
+    soundBlocked.value = false;
+  } catch {
+    // Autoplay can be denied on a fresh tab. Keep an explicit sound control
+    // on the call alert so the agent can start the ringtone with one click.
+    soundBlocked.value = true;
+  }
 };
 
 const ringingInbound = computed(() =>
@@ -224,7 +237,7 @@ watch(
   () => ringingInbound.value && !hasActiveCall.value,
   shouldRing => {
     if (shouldRing) {
-      ringtone.play().catch(() => {});
+      playRingtone();
     } else {
       stopRingtone();
     }
@@ -232,7 +245,34 @@ watch(
   { immediate: true }
 );
 
-onBeforeUnmount(stopRingtone);
+const warmRingtone = async () => {
+  window.removeEventListener('pointerdown', warmRingtone);
+  window.removeEventListener('keydown', warmRingtone);
+  if (ringingInbound.value) return;
+  ringtone.muted = true;
+  try {
+    await ringtone.play();
+    if (!ringingInbound.value) {
+      ringtone.pause();
+      ringtone.currentTime = 0;
+    }
+  } catch {
+    // The explicit sound control remains available if priming is denied.
+  } finally {
+    ringtone.muted = false;
+    if (ringingInbound.value) playRingtone();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('pointerdown', warmRingtone, { once: true });
+  window.addEventListener('keydown', warmRingtone, { once: true });
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', warmRingtone);
+  window.removeEventListener('keydown', warmRingtone);
+  stopRingtone();
+});
 </script>
 
 <template>
@@ -240,6 +280,14 @@ onBeforeUnmount(stopRingtone);
     v-if="incomingCalls.length || hasActiveCall"
     class="fixed ltr:right-4 rtl:left-4 bottom-4 z-50 flex flex-col gap-3 w-[400px]"
   >
+    <button
+      v-if="soundBlocked && ringingInbound && !hasActiveCall"
+      type="button"
+      class="rounded-xl border border-[#8db527] bg-[#c7f75b] px-4 py-2 text-sm font-semibold text-[#1c3009] shadow-lg"
+      @click="playRingtone"
+    >
+      {{ $t('CONVERSATION.VOICE_WIDGET.ENABLE_RINGTONE') }}
+    </button>
     <!-- Stacked incoming calls (shown above the primary card) -->
     <CallCard
       v-for="call in stackedIncomingCalls"

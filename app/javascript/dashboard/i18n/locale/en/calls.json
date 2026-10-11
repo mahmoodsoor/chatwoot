@@ -18,6 +18,7 @@
     "CLOSE": "Close",
     "NO_CONVERSATION": "No linked conversation was found for this caller.",
     "AUDIO_BLOCKED": "Click the call panel to enable audio.",
+    "ENABLE_RINGTONE": "Enable ringtone",
     "START_FAILED": "Could not start WhatsApp call.",
     "ANSWER_FAILED": "Could not answer WhatsApp call.",
     "END_FAILED": "Could not end WhatsApp call.",

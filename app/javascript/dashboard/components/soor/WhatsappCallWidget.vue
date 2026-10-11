@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
@@ -12,10 +12,14 @@ const busy = ref(false);
 const enabled = ref(true);
 const completedCall = ref(null);
 const outcome = ref('');
+const soundBlocked = ref(false);
 let peer;
 let microphone;
 const remoteAudio = ref(null);
 let pollTimer;
+const ringtone = new Audio('/audio/dashboard/ringtone.mp3');
+ringtone.loop = true;
+ringtone.volume = 1;
 
 const url = () =>
   `/api/v1/accounts/${route.params.accountId}/soor_whatsapp_calls`;
@@ -30,6 +34,50 @@ const incoming = computed(() =>
       new Date(call.ring_expires_at).getTime() > Date.now()
   )
 );
+const incomingId = computed(() =>
+  activeId.value ? null : incoming.value?.id
+);
+
+const stopRingtone = () => {
+  ringtone.pause();
+  ringtone.currentTime = 0;
+  soundBlocked.value = false;
+};
+
+const playRingtone = async () => {
+  try {
+    await ringtone.play();
+    soundBlocked.value = false;
+  } catch {
+    // Browsers can block autoplay until an agent interacts with the page.
+    // Keep the incoming call visible and offer a one-click sound control.
+    soundBlocked.value = true;
+  }
+};
+
+watch(incomingId, (id, previousId) => {
+  if (!id) stopRingtone();
+  else if (id !== previousId) playRingtone();
+});
+
+const warmRingtone = async () => {
+  window.removeEventListener('pointerdown', warmRingtone);
+  window.removeEventListener('keydown', warmRingtone);
+  if (incomingId.value) return;
+  ringtone.muted = true;
+  try {
+    await ringtone.play();
+    if (!incomingId.value) {
+      ringtone.pause();
+      ringtone.currentTime = 0;
+    }
+  } catch {
+    // The explicit sound control remains available if priming is denied.
+  } finally {
+    ringtone.muted = false;
+    if (incomingId.value) playRingtone();
+  }
+};
 
 const releaseAudio = () => {
   microphone?.getTracks().forEach(track => track.stop());
@@ -123,6 +171,7 @@ const start = async event => {
 
 const answer = async call => {
   if (busy.value || activeId.value) return;
+  stopRingtone();
   busy.value = true;
   error.value = '';
   try {
@@ -142,12 +191,14 @@ const answer = async call => {
       requestError.message ||
       t('SOOR_CALLS.ANSWER_FAILED');
     releaseAudio();
+    if (incomingId.value) playRingtone();
   } finally {
     busy.value = false;
   }
 };
 
 const end = async (call, action = 'terminate') => {
+  stopRingtone();
   try {
     await window.axios.post(
       `${url()}/${encodeURIComponent(call.id)}/${action}`
@@ -158,6 +209,7 @@ const end = async (call, action = 'terminate') => {
   } catch (requestError) {
     error.value =
       requestError.response?.data?.error || t('SOOR_CALLS.END_FAILED');
+    if (incomingId.value) playRingtone();
   }
 };
 
@@ -186,12 +238,17 @@ const saveOutcome = async () => {
 
 onMounted(() => {
   window.addEventListener('soor-whatsapp-call-start', start);
+  window.addEventListener('pointerdown', warmRingtone, { once: true });
+  window.addEventListener('keydown', warmRingtone, { once: true });
   refresh();
   pollTimer = setInterval(refresh, 2500);
 });
 onUnmounted(() => {
   window.removeEventListener('soor-whatsapp-call-start', start);
+  window.removeEventListener('pointerdown', warmRingtone);
+  window.removeEventListener('keydown', warmRingtone);
   clearInterval(pollTimer);
+  stopRingtone();
   releaseAudio();
 });
 </script>
@@ -199,17 +256,32 @@ onUnmounted(() => {
 <template>
   <aside
     v-if="enabled && (incoming || activeCall || completedCall || error || busy)"
-    class="fixed bottom-6 right-6 z-50 w-80 rounded-xl border border-n-weak bg-n-surface-1 p-4 shadow-xl"
+    class="fixed bottom-6 right-6 z-50 w-80 rounded-2xl border p-4 shadow-2xl"
+    :class="
+      incoming && !activeCall
+        ? 'border-[#8db527] bg-[#c7f75b] text-[#1c3009]'
+        : 'border-n-weak bg-n-surface-1 text-n-slate-12'
+    "
+    :role="incoming && !activeCall ? 'alert' : undefined"
+    :aria-label="t('SOOR_CALLS.TITLE')"
   >
     <audio ref="remoteAudio" autoplay playsinline class="hidden" />
-    <p class="font-medium text-n-slate-12">{{ t('SOOR_CALLS.TITLE') }}</p>
-    <p v-if="incoming && !activeCall" class="mt-2 text-n-slate-11">
+    <p class="font-semibold">{{ t('SOOR_CALLS.TITLE') }}</p>
+    <p v-if="incoming && !activeCall" class="mt-2 text-lg font-semibold">
       {{
         t('SOOR_CALLS.INCOMING_FROM', {
           caller: incoming.caller || t('SOOR_CALLS.UNKNOWN_CUSTOMER'),
         })
       }}
     </p>
+    <button
+      v-if="incoming && !activeCall && soundBlocked"
+      type="button"
+      class="mt-3 w-full rounded-lg border border-[#46601d] bg-white px-3 py-2 text-sm font-semibold text-[#1c3009]"
+      @click="playRingtone"
+    >
+      {{ t('SOOR_CALLS.ENABLE_RINGTONE') }}
+    </button>
     <p v-if="activeCall" class="mt-2 text-n-slate-11">
       {{
         t(
@@ -225,7 +297,7 @@ onUnmounted(() => {
         v-if="incoming && !activeCall"
         type="button"
         :disabled="busy"
-        class="rounded-md bg-n-brand px-3 py-2 text-white"
+        class="rounded-lg bg-[#224716] px-4 py-2 font-semibold text-white"
         @click="answer(incoming)"
       >
         {{ t('SOOR_CALLS.ANSWER') }}
@@ -234,7 +306,7 @@ onUnmounted(() => {
         v-if="incoming && !activeCall"
         type="button"
         :disabled="busy"
-        class="rounded-md border border-n-weak px-3 py-2"
+        class="rounded-lg border border-[#46601d] bg-white px-4 py-2 font-semibold text-[#1c3009]"
         @click="end(incoming, 'reject')"
       >
         {{ t('SOOR_CALLS.DECLINE') }}

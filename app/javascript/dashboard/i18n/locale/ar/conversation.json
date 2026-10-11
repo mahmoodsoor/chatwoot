@@ -395,6 +395,7 @@
       "HANDLED_IN_ANOTHER_TAB": "يتم التعامل معها في علامة تبويب أخرى",
       "REJECT_CALL": "رفض",
       "DISMISS_CALL": "تجاهل",
+      "ENABLE_RINGTONE": "تفعيل صوت الرنين",
       "JOIN_CALL": "انضم إلى المكالمة",
       "END_CALL": "إنهاء المكالمة",
       "MUTE": "Mute mic",
