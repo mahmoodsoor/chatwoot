@@ -48,6 +48,7 @@ const expiryLabel = task => {
 const formatDate = value =>
   value
     ? new Intl.DateTimeFormat(undefined, {
+        timeZone: 'Asia/Bahrain',
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -55,6 +56,21 @@ const formatDate = value =>
         minute: '2-digit',
       }).format(new Date(value))
     : '';
+const formatShortDate = value =>
+  value
+    ? new Intl.DateTimeFormat(undefined, {
+        timeZone: 'Asia/Bahrain',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(value))
+    : '—';
+const stageClass = stage => {
+  if (stage === 'won') return 'bg-n-teal-2 text-n-teal-11';
+  if (stage === 'lost') return 'bg-n-ruby-2 text-n-ruby-11';
+  if (stage === 'new') return 'bg-n-slate-3 text-n-slate-11';
+  return 'bg-n-amber-2 text-n-amber-11';
+};
 const localDateTime = value => {
   if (!value) return '';
   const date = new Date(value);
@@ -160,13 +176,13 @@ onMounted(() => {
 
 <template>
   <div class="flex h-full min-w-0 flex-col bg-n-background">
-    <header class="border-b border-n-weak bg-n-solid-1 px-6 py-5">
-      <div class="flex flex-wrap items-start justify-between gap-4">
+    <header class="border-b border-n-weak bg-n-solid-1 px-6 py-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold text-n-slate-12">
+          <h1 class="text-xl font-semibold text-n-slate-12">
             {{ t('SOOR_SALES_TASKS.TITLE') }}
           </h1>
-          <p class="mt-1 text-sm text-n-slate-11">
+          <p class="mt-0.5 text-xs text-n-slate-11">
             {{ t('SOOR_SALES_TASKS.SUBTITLE') }}
           </p>
         </div>
@@ -178,36 +194,24 @@ onMounted(() => {
           {{ t('SOOR_SALES_TASKS.REFRESH') }}
         </button>
       </div>
-      <div class="mt-5 grid max-w-3xl grid-cols-3 gap-3">
-        <div class="rounded-xl border border-n-weak bg-n-background px-4 py-3">
-          <div class="text-xs text-n-slate-11">
-            {{ t('SOOR_SALES_TASKS.IN_PROGRESS') }}
-          </div>
-          <div class="mt-1 text-2xl font-semibold text-n-slate-12">
-            {{ openCount }}
-          </div>
+      <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <div class="flex items-baseline gap-2">
+          <span class="font-semibold text-n-slate-12">{{ openCount }}</span>
+          <span class="text-n-slate-11">{{ t('SOOR_SALES_TASKS.IN_PROGRESS') }}</span>
         </div>
-        <div class="rounded-xl border border-n-weak bg-n-background px-4 py-3">
-          <div class="text-xs text-n-slate-11">
-            {{ t('SOOR_SALES_TASKS.NEW') }}
-          </div>
-          <div class="mt-1 text-2xl font-semibold text-n-slate-12">
-            {{ counts.new || 0 }}
-          </div>
+        <div class="flex items-baseline gap-2">
+          <span class="font-semibold text-n-slate-12">{{ counts.new || 0 }}</span>
+          <span class="text-n-slate-11">{{ t('SOOR_SALES_TASKS.NEW') }}</span>
         </div>
-        <div class="rounded-xl border border-n-weak bg-n-background px-4 py-3">
-          <div class="text-xs text-n-slate-11">
-            {{ t('SOOR_SALES_TASKS.WON') }}
-          </div>
-          <div class="mt-1 text-2xl font-semibold text-n-slate-12">
-            {{ counts.won || 0 }}
-          </div>
+        <div class="flex items-baseline gap-2">
+          <span class="font-semibold text-n-teal-11">{{ counts.won || 0 }}</span>
+          <span class="text-n-slate-11">{{ t('SOOR_SALES_TASKS.WON') }}</span>
         </div>
       </div>
     </header>
 
     <div
-      class="flex flex-wrap items-center gap-2 border-b border-n-weak px-6 py-3"
+      class="flex flex-wrap items-center gap-2 border-b border-n-weak bg-n-solid-1 px-6 py-3"
     >
       <button
         v-for="filter in ['all', 'mine', 'unassigned_filter', 'overdue', 'new']"
@@ -226,13 +230,13 @@ onMounted(() => {
       <input
         v-model="query"
         type="search"
-        class="ml-auto min-w-48 rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2 text-sm text-n-slate-12"
+        class="ml-auto min-w-56 rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12"
         :placeholder="t('SOOR_SALES_TASKS.SEARCH')"
         :aria-label="t('SOOR_SALES_TASKS.SEARCH')"
       />
     </div>
 
-    <div class="min-h-0 flex-1 overflow-auto">
+    <div class="min-h-0 flex-1 overflow-auto bg-n-solid-1">
       <div v-if="loading" class="p-8 text-sm text-n-slate-11">
         {{ t('SOOR_SALES_TASKS.LOADING') }}
       </div>
@@ -250,28 +254,37 @@ onMounted(() => {
           {{ t('SOOR_SALES_TASKS.EMPTY_SOURCE') }}
         </p>
       </div>
-      <table v-else class="w-full min-w-[850px] text-left text-sm">
+      <table v-else class="w-full min-w-[1270px] text-left text-sm">
         <thead
-          class="sticky top-0 z-10 bg-n-solid-2 text-xs uppercase tracking-wide text-n-slate-10"
+          class="sticky top-0 z-10 border-b border-n-weak bg-n-solid-2 text-[11px] uppercase tracking-wide text-n-slate-10"
         >
           <tr>
-            <th class="px-6 py-3 font-medium">
+            <th class="w-56 px-5 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.CUSTOMER') }}
             </th>
-            <th class="px-4 py-3 font-medium">
+            <th class="w-52 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.CAR') }}
             </th>
-            <th class="px-4 py-3 font-medium">
+            <th class="w-32 px-4 py-3 font-semibold">
+              {{ t('SOOR_SALES_TASKS.JOINED') }}
+            </th>
+            <th class="w-32 px-4 py-3 font-semibold">
+              {{ t('SOOR_SALES_TASKS.CAR_SEARCHED') }}
+            </th>
+            <th class="w-36 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.TASK') }}
             </th>
-            <th class="px-4 py-3 font-medium">
+            <th class="w-36 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.STAGE') }}
             </th>
-            <th class="px-4 py-3 font-medium">
+            <th class="w-36 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.OWNER') }}
             </th>
-            <th class="px-4 py-3 font-medium">
+            <th class="w-44 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.DUE') }}
+            </th>
+            <th class="w-24 px-4 py-3 font-semibold">
+              {{ t('SOOR_SALES_TASKS.ACTION') }}
             </th>
           </tr>
         </thead>
@@ -279,55 +292,54 @@ onMounted(() => {
           <tr
             v-for="task in tasks"
             :key="task.id"
-            class="cursor-pointer border-b border-n-weak hover:bg-n-alpha-1"
+            class="cursor-pointer border-b border-n-weak transition-colors hover:bg-n-alpha-1"
             @click="open(task)"
           >
-            <td class="px-6 py-4">
+            <td class="px-5 py-3">
               <button
                 type="button"
-                class="font-medium text-n-slate-12 hover:underline"
+                class="max-w-48 truncate text-left font-semibold text-n-slate-12 hover:text-n-brand"
                 @click.stop="open(task)"
               >
                 {{ task.customer_name }}
               </button>
-              <div class="mt-1 text-xs text-n-slate-10">
+              <div class="mt-0.5 text-xs text-n-slate-10">
                 {{ task.phone_number || task.email }}
               </div>
-              <button
-                type="button"
-                class="mt-3 rounded-lg border border-n-brand bg-n-brand/10 px-3 py-1.5 text-xs font-semibold text-n-brand hover:bg-n-brand/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-                :aria-label="`${t('SOOR_SALES_TASKS.WORK_TASK')}: ${task.customer_name}`"
-                @click.stop="open(task)"
-              >
-                {{ t('SOOR_SALES_TASKS.WORK_TASK') }}
-              </button>
             </td>
-            <td class="px-4 py-4 text-n-slate-12">
-              {{ carLabel(task) }}
+            <td class="px-4 py-3">
+              <div class="font-medium text-n-slate-12">{{ carLabel(task) }}</div>
               <div
                 v-if="task.vehicle?.plate || expiryLabel(task)"
-                class="mt-1 text-xs text-n-slate-10"
+                class="mt-0.5 text-xs text-n-slate-10"
               >
                 {{ task.vehicle?.plate }}
                 <span v-if="task.vehicle?.plate && expiryLabel(task)">·</span>
                 {{ expiryLabel(task) }}
               </div>
             </td>
-            <td class="px-4 py-4 text-n-slate-12">
+            <td class="whitespace-nowrap px-4 py-3 text-n-slate-11">
+              {{ formatShortDate(task.registered_at) }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-n-slate-11">
+              {{ formatShortDate(task.vehicle?.searched_at) }}
+            </td>
+            <td class="px-4 py-3 text-n-slate-12">
               {{ typeLabel(task.task_type) }}
             </td>
-            <td class="px-4 py-4">
+            <td class="px-4 py-3">
               <span
-                class="rounded-full bg-n-alpha-2 px-2.5 py-1 text-xs text-n-slate-12"
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                :class="stageClass(task.stage)"
               >
                 {{ stageLabel(task.stage) }}
               </span>
             </td>
-            <td class="px-4 py-4 text-n-slate-11">
+            <td class="px-4 py-3 text-n-slate-11">
               {{ task.assignee?.name || t('SOOR_SALES_TASKS.UNASSIGNED') }}
             </td>
             <td
-              class="px-4 py-4"
+              class="whitespace-nowrap px-4 py-3 text-xs"
               :class="
                 isOverdue(task)
                   ? 'font-semibold text-n-ruby-9'
@@ -339,6 +351,16 @@ onMounted(() => {
                   ? formatDate(task.due_at)
                   : t('SOOR_SALES_TASKS.NO_DUE')
               }}
+            </td>
+            <td class="px-4 py-3">
+              <button
+                type="button"
+                class="rounded-md border border-n-weak bg-n-solid-1 px-3 py-1.5 text-xs font-semibold text-n-brand shadow-sm hover:border-n-brand hover:bg-n-brand/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+                :aria-label="`${t('SOOR_SALES_TASKS.WORK_TASK')}: ${task.customer_name}`"
+                @click.stop="open(task)"
+              >
+                {{ t('SOOR_SALES_TASKS.UPDATE') }}
+              </button>
             </td>
           </tr>
         </tbody>

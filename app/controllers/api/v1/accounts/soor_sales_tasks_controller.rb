@@ -93,7 +93,7 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
         raise ArgumentError, 'Each contact must be an object' unless raw.is_a?(ActionController::Parameters)
 
         entry = raw.permit(:zoho_contact_id, :customer_name, :phone_number, :email, :registered_at,
-                           vehicle: %i[make model year plate registration_expiry registration_status])
+                           vehicle: %i[make model year plate searched_at registration_expiry registration_status])
         id = entry[:zoho_contact_id].to_s
         raise ArgumentError, 'Invalid Zoho contact ID' unless id.match?(/\A\d{1,30}\z/)
 

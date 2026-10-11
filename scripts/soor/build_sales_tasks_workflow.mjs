@@ -60,7 +60,7 @@ const vehicles = clone('Read related vehicles');
 vehicles.id = 'soor-sales-read-vehicles';
 vehicles.name = 'Read registered contact vehicles';
 vehicles.position = [840, 0];
-vehicles.parameters.jsonQuery = '={{ JSON.stringify({...$json.query, fields: "id,make,model,year,plateNumber,registrationExpiryDate,registrationStatus,vehicleuser"}) }}';
+vehicles.parameters.jsonQuery = '={{ JSON.stringify({...$json.query, fields: "id,Created_Time,make,model,year,plateNumber,registrationExpiryDate,registrationStatus,vehicleuser"}) }}';
 
 const batches = code('Build task batches', `
 const inputs=$('Prepare registered contacts').all().map(i=>i.json),results=$input.all().map(i=>i.json);
@@ -72,7 +72,7 @@ for(let i=0;i<inputs.length;i++){
   const data=response.statusCode===204?[]:response.body?.data;
   if(!Array.isArray(data)||data.length>200||response.body?.info?.more_records===true)throw Error('VEHICLE_RESPONSE_INVALID');
   const contact=inputs[i].contact;
-  const candidates=data.map(v=>({make:v.make||null,model:v.model||null,year:v.year||null,plate:v.plateNumber||null,registration_expiry:v.registrationExpiryDate||null,registration_status:v.registrationStatus||null}));
+  const candidates=data.map(v=>({make:v.make||null,model:v.model||null,year:v.year||null,plate:v.plateNumber||null,searched_at:v.Created_Time||null,registration_expiry:v.registrationExpiryDate||null,registration_status:v.registrationStatus||null}));
   const now=Date.now(),distance=v=>{const t=Date.parse(v.registration_expiry);return Number.isFinite(t)?Math.abs(t-now):Number.POSITIVE_INFINITY;};
   candidates.sort((a,b)=>distance(a)-distance(b));
   tasks.push({...contact,vehicle:candidates[0]||{}});

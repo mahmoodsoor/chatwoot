@@ -8,36 +8,51 @@ module Soor
     end
 
     def ensure_conversation!
-      ensure_sales_inbox_member!
       verify_linked_identity!
-      if @task.conversation&.contact_id == @task.contact_id && @task.contact_id.present?
-        return @task.conversation if agent_can_see?(@task.conversation)
+      inbox = whatsapp_inbox!
+      ensure_agent_access!(inbox)
+      source_id = whatsapp_source_id!
+      contact_inbox = inbox.contact_inboxes.includes(:contact).find_by(source_id: source_id)
+      contact = contact_inbox&.contact || find_or_create_contact!
+      check_contact_identity!(contact)
+      contact_inbox ||= inbox.contact_inboxes.create_or_find_by!(source_id: source_id) do |record|
+        record.contact = contact
       end
+      raise IdentityConflict, 'WhatsApp number belongs to another contact' unless contact_inbox.contact_id == contact.id
 
-      contact = find_or_create_contact!
-      conversations = contact.conversations.where(account_id: @task.account_id)
-      unless administrator?
-        conversations = conversations.where(inbox_id: @agent.inboxes.where(account_id: @task.account_id).select(:id))
-      end
-      conversation = conversations.order(id: :desc).first
-      conversation ||= create_private_conversation!(contact)
+      conversation = @task.conversation if @task.conversation&.contact_inbox_id == contact_inbox.id &&
+                                           @task.conversation&.contact_id == contact.id &&
+                                           @task.conversation&.inbox_id == inbox.id
+      conversation ||= contact_inbox.conversations.where(account_id: @task.account_id).order(id: :desc).first
+      conversation ||= create_whatsapp_conversation!(contact, contact_inbox, inbox)
       @task.update!(contact: contact, conversation: conversation)
       conversation
     end
 
     private
 
-    def ensure_sales_inbox_member!
-      inbox = @task.account.inboxes.find_by(name: 'SOOR Sales Notes', channel_type: 'Channel::Api')
-      inbox&.inbox_members&.find_or_create_by!(user_id: @agent.id)
+    def whatsapp_inbox!
+      inboxes = @task.account.inboxes.where(channel_type: 'Channel::Whatsapp').limit(2).to_a
+      raise IdentityConflict, 'No WhatsApp inbox is configured' if inboxes.empty?
+      raise IdentityConflict, 'More than one WhatsApp inbox; choose the correct inbox before adding a note' if inboxes.many?
+
+      inboxes.first
+    end
+
+    def whatsapp_source_id!
+      raise IdentityConflict, 'A customer phone number is required for a WhatsApp note' if @task.phone_number.blank?
+
+      @task.phone_number.delete_prefix('+')
+    end
+
+    def ensure_agent_access!(inbox)
+      return if administrator? || @agent.inboxes.where(account_id: @task.account_id).exists?(id: inbox.id)
+
+      raise IdentityConflict, 'You need access to the WhatsApp inbox to add this note'
     end
 
     def administrator?
       @agent.account_users.find_by(account_id: @task.account_id)&.administrator?
-    end
-
-    def agent_can_see?(conversation)
-      administrator? || @agent.inboxes.where(account_id: @task.account_id).exists?(id: conversation.inbox_id)
     end
 
     def verify_linked_identity!
@@ -81,27 +96,11 @@ module Soor
       )
     end
 
-    def create_private_conversation!(contact)
-      inbox = sales_inbox!
-      contact_inbox = ContactInbox.find_by(contact: contact, inbox: inbox)
-      contact_inbox ||= ContactInboxBuilder.new(contact: contact, inbox: inbox).perform
+    def create_whatsapp_conversation!(contact, contact_inbox, inbox)
       Conversation.create!(
         account: @task.account, inbox: inbox, contact: contact, contact_inbox: contact_inbox,
         status: :resolved, custom_attributes: { soor_sales_task: true }
       )
-    end
-
-    def sales_inbox!
-      account = @task.account
-      account.with_lock do
-        inbox = account.inboxes.find_by(name: 'SOOR Sales Notes', channel_type: 'Channel::Api')
-        return inbox if inbox
-
-        channel = Channel::Api.create!(account: account)
-        inbox = account.inboxes.create!(name: 'SOOR Sales Notes', channel: channel, enable_auto_assignment: false)
-        inbox.add_members(account.account_users.pluck(:user_id))
-        inbox
-      end
     end
   end
 end

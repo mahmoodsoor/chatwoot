@@ -1,7 +1,7 @@
 {
   "SOOR_SALES_TASKS": {
     "TITLE": "Sales tasks",
-    "SUBTITLE": "Turn new registrations into customers. Every update is a private note in the conversation.",
+    "SUBTITLE": "Follow up with new customers. Updates stay private inside their WhatsApp chat.",
     "REFRESH": "Refresh",
     "LOADING": "Loading sales tasks…",
     "SEARCH": "Search customer, phone or email",
@@ -18,6 +18,10 @@
     "SAVE_FAILED": "Couldn't save this update. Nothing was sent to the customer.",
     "SAVED": "Update saved as a private note.",
     "CUSTOMER": "Customer",
+    "JOINED": "Joined",
+    "CAR_SEARCHED": "Car searched",
+    "ACTION": "Action",
+    "UPDATE": "Update",
     "WORK_TASK": "Work task",
     "CAR": "Car",
     "TASK": "Next task",
@@ -28,7 +32,7 @@
     "NO_CAR": "No car in Zoho",
     "UNASSIGNED": "Unassigned",
     "NO_DUE": "No due date",
-    "OPEN_CHAT": "Open chat",
+    "OPEN_CHAT": "Open WhatsApp chat",
     "OPENING_CHAT": "Opening chat…",
     "OPEN_ZOHO": "Open in Zoho",
     "DETAIL_TITLE": "Update sales task",
