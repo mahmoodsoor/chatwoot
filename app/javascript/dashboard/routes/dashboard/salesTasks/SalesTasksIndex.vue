@@ -45,13 +45,10 @@ const expiryLabel = task => {
   const expiry = task.vehicle?.registration_expiry;
   return expiry ? new Date(expiry).toLocaleDateString() : '';
 };
-const formatDate = value =>
+const formatTime = value =>
   value
     ? new Intl.DateTimeFormat(undefined, {
         timeZone: 'Asia/Bahrain',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       }).format(new Date(value))
@@ -254,33 +251,33 @@ onMounted(() => {
           {{ t('SOOR_SALES_TASKS.EMPTY_SOURCE') }}
         </p>
       </div>
-      <table v-else class="w-full min-w-[1270px] text-left text-sm">
+      <table v-else class="w-full min-w-[1200px] text-left text-sm">
         <thead
           class="sticky top-0 z-10 border-b border-n-weak bg-n-solid-2 text-[11px] uppercase tracking-wide text-n-slate-10"
         >
           <tr>
-            <th class="w-56 px-5 py-3 font-semibold">
+            <th class="w-44 px-5 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.CUSTOMER') }}
             </th>
-            <th class="w-52 px-4 py-3 font-semibold">
+            <th class="w-48 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.CAR') }}
             </th>
-            <th class="w-32 px-4 py-3 font-semibold">
+            <th class="w-28 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.JOINED') }}
             </th>
-            <th class="w-32 px-4 py-3 font-semibold">
+            <th class="w-28 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.CAR_SEARCHED') }}
             </th>
-            <th class="w-36 px-4 py-3 font-semibold">
+            <th class="w-32 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.TASK') }}
             </th>
-            <th class="w-36 px-4 py-3 font-semibold">
+            <th class="w-32 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.STAGE') }}
             </th>
-            <th class="w-36 px-4 py-3 font-semibold">
+            <th class="w-28 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.OWNER') }}
             </th>
-            <th class="w-44 px-4 py-3 font-semibold">
+            <th class="w-36 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.DUE') }}
             </th>
             <th class="sticky right-0 z-20 w-24 border-l border-n-weak bg-n-solid-2 px-4 py-3 font-semibold">
@@ -303,7 +300,13 @@ onMounted(() => {
               >
                 {{ task.customer_name }}
               </button>
-              <div class="mt-0.5 text-xs text-n-slate-10">
+              <div
+                v-if="
+                  (task.phone_number || task.email) &&
+                  task.customer_name !== (task.phone_number || task.email)
+                "
+                class="mt-0.5 text-xs text-n-slate-10"
+              >
                 {{ task.phone_number || task.email }}
               </div>
             </td>
@@ -329,7 +332,7 @@ onMounted(() => {
             </td>
             <td class="px-4 py-3">
               <span
-                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                class="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium"
                 :class="stageClass(task.stage)"
               >
                 {{ stageLabel(task.stage) }}
@@ -346,11 +349,11 @@ onMounted(() => {
                   : 'text-n-slate-11'
               "
             >
-              {{
-                task.due_at
-                  ? formatDate(task.due_at)
-                  : t('SOOR_SALES_TASKS.NO_DUE')
-              }}
+              <template v-if="task.due_at">
+                <span class="block">{{ formatShortDate(task.due_at) }}</span>
+                <span class="block text-n-slate-10">{{ formatTime(task.due_at) }}</span>
+              </template>
+              <template v-else>{{ t('SOOR_SALES_TASKS.NO_DUE') }}</template>
             </td>
             <td class="sticky right-0 z-10 border-l border-n-weak bg-n-solid-1 px-4 py-3">
               <button
