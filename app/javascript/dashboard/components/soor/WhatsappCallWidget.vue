@@ -12,6 +12,17 @@ const busy = ref(false);
 const enabled = ref(true);
 const completedCall = ref(null);
 const outcome = ref('');
+const source = ref('');
+const sources = [
+  'instagram',
+  'tiktok',
+  'google',
+  'referral',
+  'existing_customer',
+  'website',
+  'other',
+  'not_asked',
+];
 const soundBlocked = ref(false);
 let peer;
 let microphone;
@@ -215,18 +226,19 @@ const end = async (call, action = 'terminate') => {
 
 const saveOutcome = async () => {
   const displayId = completedCall.value?.conversation_display_id;
-  if (!displayId || !outcome.value.trim()) return;
+  if (!displayId || !outcome.value.trim() || !source.value) return;
   busy.value = true;
   try {
     await window.axios.post(
-      `/api/v1/accounts/${route.params.accountId}/conversations/${displayId}/messages`,
+      `${url()}/${encodeURIComponent(completedCall.value.id)}/outcome`,
       {
-        content: `WhatsApp call outcome: ${outcome.value.trim()}`,
-        private: true,
+        outcome: outcome.value.trim(),
+        source: source.value,
       }
     );
     completedCall.value = null;
     outcome.value = '';
+    source.value = '';
     error.value = '';
   } catch (requestError) {
     error.value =
@@ -343,10 +355,25 @@ onUnmounted(() => {
       <p v-else class="text-sm text-n-slate-11">
         {{ t('SOOR_CALLS.NO_CONVERSATION') }}
       </p>
+      <label
+        v-if="completedCall.conversation_display_id"
+        class="mt-2 block text-sm text-n-slate-11"
+      >
+        {{ t('SOOR_CALLS.SOURCE_LABEL') }}
+        <select
+          v-model="source"
+          class="mt-1 w-full rounded-md border border-n-weak bg-n-surface-1 p-2 text-n-slate-12"
+        >
+          <option value="">{{ t('SOOR_CALLS.SOURCE_PLACEHOLDER') }}</option>
+          <option v-for="item in sources" :key="item" :value="item">
+            {{ t(`SOOR_CALLS.SOURCES.${item.toUpperCase()}`) }}
+          </option>
+        </select>
+      </label>
       <button
         v-if="completedCall.conversation_display_id"
         type="button"
-        :disabled="busy || !outcome.trim()"
+        :disabled="busy || !outcome.trim() || !source"
         class="mt-2 rounded-md bg-n-brand px-3 py-2 text-white"
         @click="saveOutcome"
       >

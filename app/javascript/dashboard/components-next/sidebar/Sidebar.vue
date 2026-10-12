@@ -699,6 +699,11 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.REPORTS_CONVERSATION'),
           to: accountScopedRoute('conversation_reports'),
         },
+        {
+          name: 'Report Calls',
+          label: t('SIDEBAR.REPORTS_CALLS'),
+          to: accountScopedRoute('soor_call_reports'),
+        },
         ...reportRoutes.value,
         {
           name: 'Reports CSAT',

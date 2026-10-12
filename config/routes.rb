@@ -297,11 +297,15 @@ Rails.application.routes.draw do
           # licensed Chatwoot Voice Channel implementation above.
           # Meta call IDs contain dots; the default Rails :id segment rejects them.
           resources :soor_whatsapp_calls, only: [:index, :show], constraints: { id: /[^\/]+/ } do
-            collection { post :initiate }
+            collection do
+              post :initiate
+              get :performance
+            end
             member do
               post :accept
               post :reject
               post :terminate
+              post :outcome
             end
           end
 

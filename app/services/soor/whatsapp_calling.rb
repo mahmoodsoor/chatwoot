@@ -144,7 +144,10 @@ module Soor
       call = find(status[:id].to_s)
       return unless call
 
-      call['status'] = 'active' if status[:status] == 'ACCEPTED'
+      if status[:status] == 'ACCEPTED'
+        call['status'] = 'active'
+        call['answered_at'] ||= Time.current.iso8601
+      end
       save(call)
     end
 
@@ -174,6 +177,16 @@ module Soor
     end
 
     def save(call)
+      SoorWhatsappCallRecord.upsert(
+        {
+          account_id: call['account_id'], call_id: call['id'], inbox_id: call['inbox_id'],
+          conversation_id: call['conversation_id'], agent_id: call['agent_id'],
+          direction: call['direction'], status: call['status'], phone_number: call['caller'] || call['recipient'],
+          started_at: call['created_at'], ring_expires_at: call['ring_expires_at'], answered_at: call['answered_at'],
+          ended_at: call['ended_at'], end_reason: call['end_reason']
+        },
+        unique_by: :index_soor_calls_on_account_and_call_id
+      )
       key = call_key(call['id'])
       Redis::Alfred.lpush(index_key, call['id']) unless Redis::Alfred.exists?(key)
       Redis::Alfred.setex(key, call.to_json, TTL)

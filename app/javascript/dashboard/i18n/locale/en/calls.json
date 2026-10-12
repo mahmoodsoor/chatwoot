@@ -14,6 +14,18 @@
     "OPEN_CONVERSATION": "Open conversation",
     "OUTCOME_LABEL": "Call outcome (private note)",
     "OUTCOME_PLACEHOLDER": "What happened on the call?",
+    "SOURCE_LABEL": "How did the customer hear about SOOR?",
+    "SOURCE_PLACEHOLDER": "Select a source",
+    "SOURCES": {
+      "INSTAGRAM": "Instagram",
+      "TIKTOK": "TikTok",
+      "GOOGLE": "Google",
+      "REFERRAL": "Friend or family referral",
+      "EXISTING_CUSTOMER": "Existing customer",
+      "WEBSITE": "SOOR website",
+      "OTHER": "Other",
+      "NOT_ASKED": "Not asked"
+    },
     "SAVE_OUTCOME": "Save private note",
     "CLOSE": "Close",
     "NO_CONVERSATION": "No linked conversation was found for this caller.",
