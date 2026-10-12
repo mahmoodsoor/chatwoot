@@ -26,7 +26,18 @@ const form = reactive({
   assignee_id: '',
   due_at: '',
   outcome: '',
+  lead_source: '',
 });
+const leadSources = [
+  'instagram',
+  'tiktok',
+  'google',
+  'referral',
+  'existing_customer',
+  'website',
+  'other',
+  'not_asked',
+];
 let searchTimer;
 
 const apiUrl = computed(
@@ -114,6 +125,7 @@ function open(task) {
     assignee_id: task.assignee?.id || '',
     due_at: localDateTime(task.due_at),
     outcome: '',
+    lead_source: task.lead_source || '',
   });
 }
 
@@ -130,6 +142,7 @@ async function save() {
           assignee_id: form.assignee_id || '',
           due_at: form.due_at ? new Date(form.due_at).toISOString() : '',
           outcome: form.outcome.trim(),
+          lead_source: form.lead_source,
         },
       }
     );
@@ -526,6 +539,22 @@ onMounted(() => {
               class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
               :placeholder="t('SOOR_SALES_TASKS.OUTCOME_PLACEHOLDER')"
             />
+          </label>
+          <label class="grid gap-1 text-sm text-n-slate-12">
+            {{ t('SOOR_SALES_TASKS.LEAD_SOURCE') }}
+            <select
+              v-model="form.lead_source"
+              class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
+            >
+              <option value="">{{ t('SOOR_SALES_TASKS.SOURCE_PLACEHOLDER') }}</option>
+              <option
+                v-for="source in leadSources"
+                :key="source"
+                :value="source"
+              >
+                {{ t(`SOOR_SALES_TASKS.SOURCES.${source.toUpperCase()}`) }}
+              </option>
+            </select>
           </label>
           <button
             type="submit"

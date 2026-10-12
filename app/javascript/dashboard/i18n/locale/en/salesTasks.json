@@ -39,6 +39,18 @@
     "DETAIL_HINT": "Record the real outcome and choose the next step. The update is private to your team.",
     "OUTCOME": "What happened?",
     "OUTCOME_PLACEHOLDER": "For example: called, customer asked for a comprehensive quote; follow up tomorrow.",
+    "LEAD_SOURCE": "How did they hear about SOOR?",
+    "SOURCE_PLACEHOLDER": "Select a source",
+    "SOURCES": {
+      "INSTAGRAM": "Instagram",
+      "TIKTOK": "TikTok",
+      "GOOGLE": "Google",
+      "REFERRAL": "Friend or family referral",
+      "EXISTING_CUSTOMER": "Existing customer",
+      "WEBSITE": "SOOR website",
+      "OTHER": "Other",
+      "NOT_ASKED": "Not asked"
+    },
     "SAVE": "Save private update",
     "SAVING": "Saving…",
     "CLOSE": "Close",

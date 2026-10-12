@@ -23,11 +23,15 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
 
   def update
     task = Current.account.soor_sales_tasks.find(params[:id])
-    updates = params.require(:task).permit(:task_type, :stage, :assignee_id, :due_at, :outcome)
+    updates = params.require(:task).permit(:task_type, :stage, :assignee_id, :due_at, :outcome, :lead_source)
     outcome = updates.delete(:outcome).to_s.strip
     return render_error('Outcome is too long') if outcome.length > 3000
     return render_error('Invalid task type') if updates[:task_type].present? && !SoorSalesTask::TASK_TYPES.include?(updates[:task_type])
     return render_error('Invalid stage') if updates[:stage].present? && !SoorSalesTask::STAGES.include?(updates[:stage])
+    if updates.key?(:lead_source)
+      updates[:lead_source] = updates[:lead_source].presence
+      return render_error('Invalid source') if updates[:lead_source] && !SoorSalesTask::LEAD_SOURCES.include?(updates[:lead_source])
+    end
 
     if updates.key?(:assignee_id)
       id = updates[:assignee_id].presence
@@ -46,7 +50,7 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
     end
 
     task.with_lock do
-      before = task.attributes.slice('task_type', 'stage', 'assignee_id', 'due_at')
+      before = task.attributes.slice('task_type', 'stage', 'assignee_id', 'due_at', 'lead_source')
       task.assign_attributes(updates.to_h)
       changed = before.any? { |key, value| task.public_send(key) != value }
       return render_error('Add an outcome or change the task') unless changed || outcome.present?
@@ -57,6 +61,7 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       content = "Sales task update · #{task.task_type.humanize} · #{task.stage.humanize}"
       content += "\nDue: #{task.due_at.in_time_zone('Asia/Bahrain').strftime('%d %b %Y, %H:%M %Z')}" if task.due_at
       content += "\nOwner: #{task.assignee&.name || 'Unassigned'}"
+      content += "\nHow they heard about SOOR: #{task.lead_source.humanize}" if task.lead_source.present?
       content += "\n#{outcome}" if outcome.present?
       Messages::MessageBuilder.new(Current.user, conversation, { content: content, private: true, message_type: 'outgoing' }).perform
     end
@@ -124,6 +129,7 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       id: task.id, zoho_contact_id: task.zoho_contact_id,
       customer_name: task.customer_name, phone_number: task.phone_number, email: task.email,
       vehicle: task.vehicle, task_type: task.task_type, stage: task.stage,
+      lead_source: task.lead_source,
       registered_at: task.registered_at, due_at: task.due_at, last_updated_at: task.last_updated_at,
       assignee: task.assignee && { id: task.assignee.id, name: task.assignee.name },
       conversation_id: task.conversation&.display_id

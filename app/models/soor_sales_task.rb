@@ -1,6 +1,7 @@
 class SoorSalesTask < ApplicationRecord
   TASK_TYPES = %w[welcome_call follow_up documents quote renewal other].freeze
   STAGES = %w[new attempted contacted follow_up quote_sent won lost].freeze
+  LEAD_SOURCES = %w[instagram tiktok google referral existing_customer website other not_asked].freeze
 
   belongs_to :account
   belongs_to :contact, optional: true
@@ -15,5 +16,6 @@ class SoorSalesTask < ApplicationRecord
   validates :email, allow_blank: true, format: { with: Devise.email_regexp }
   validates :task_type, inclusion: { in: TASK_TYPES }
   validates :stage, inclusion: { in: STAGES }
+  validates :lead_source, inclusion: { in: LEAD_SOURCES }, allow_nil: true
   validates :vehicle, jsonb_attributes_length: true
 end
