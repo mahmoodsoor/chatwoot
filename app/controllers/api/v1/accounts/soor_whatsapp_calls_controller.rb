@@ -17,7 +17,7 @@ class Api::V1::Accounts::SoorWhatsappCallsController < Api::V1::Accounts::BaseCo
     to = Date.iso8601(params[:to].presence || Date.current.iso8601)
     return render_error('Select a valid date range of at most one year') if to < from || (to - from).to_i > 365
 
-    zone = ActiveSupport::TimeZone[Current.account.reporting_timezone] || Time.zone
+    zone = Current.account.reporting_timezone.present? ? ActiveSupport::TimeZone[Current.account.reporting_timezone] : Time.zone
     starts_at = zone.local(from.year, from.month, from.day)
     ends_at = zone.local(to.year, to.month, to.day).end_of_day
     scope = SoorWhatsappCallRecord.where(account_id: Current.account.id, inbox_id: @inbox.id)
