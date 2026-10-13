@@ -16,6 +16,14 @@ const meta = ref({ page: 1, total: 0, pages: 0 });
 const counts = ref({});
 const view = ref('all');
 const query = ref('');
+const filters = reactive({
+  stage: '',
+  task_type: '',
+  assignee_id: '',
+  car: '',
+  lead_source: '',
+  sort: 'due_soonest',
+});
 const loading = ref(false);
 const saving = ref(false);
 const opening = ref(false);
@@ -38,7 +46,25 @@ const leadSources = [
   'other',
   'not_asked',
 ];
+const taskTypes = [
+  'welcome_call',
+  'follow_up',
+  'documents',
+  'quote',
+  'renewal',
+  'other',
+];
+const stages = [
+  'new',
+  'attempted',
+  'contacted',
+  'follow_up',
+  'quote_sent',
+  'won',
+  'lost',
+];
 let searchTimer;
+let latestRequest = 0;
 
 const apiUrl = computed(
   () => `/api/v1/accounts/${accountId.value}/soor_sales_tasks`
@@ -97,23 +123,43 @@ const openCount = computed(() =>
     0
   )
 );
+const hasActiveFilters = computed(() =>
+  view.value !== 'all' ||
+  query.value.trim() ||
+  filters.stage ||
+  filters.task_type ||
+  filters.assignee_id ||
+  filters.car ||
+  filters.lead_source
+);
 
 async function load(page = 1) {
+  const requestId = ++latestRequest;
   loading.value = true;
   try {
-    const params = { page, q: query.value.trim() || undefined };
+    const params = {
+      page,
+      q: query.value.trim() || undefined,
+      stage: view.value === 'new' ? 'new' : filters.stage || undefined,
+      task_type: filters.task_type || undefined,
+      assignee_id: filters.assignee_id || undefined,
+      car: filters.car || undefined,
+      lead_source: filters.lead_source || undefined,
+      sort: filters.sort,
+    };
     if (view.value === 'mine') params.mine = true;
     if (view.value === 'unassigned_filter') params.unassigned = true;
     if (view.value === 'overdue') params.overdue = true;
-    if (view.value === 'new') params.stage = 'new';
     const { data } = await window.axios.get(apiUrl.value, { params });
+    if (requestId !== latestRequest) return;
+
     tasks.value = data.tasks;
     meta.value = data.meta;
     counts.value = data.counts;
   } catch {
-    useAlert(t('SOOR_SALES_TASKS.LOAD_FAILED'));
+    if (requestId === latestRequest) useAlert(t('SOOR_SALES_TASKS.LOAD_FAILED'));
   } finally {
-    loading.value = false;
+    if (requestId === latestRequest) loading.value = false;
   }
 }
 
@@ -173,11 +219,39 @@ async function openChat() {
   }
 }
 
-watch(view, () => load());
-watch(query, () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => load(), 300);
-});
+watch(
+  () => [
+    view.value,
+    query.value,
+    filters.stage,
+    filters.task_type,
+    filters.assignee_id,
+    filters.car,
+    filters.lead_source,
+    filters.sort,
+  ],
+  () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => load(), query.value ? 300 : 0);
+  }
+);
+function resetFilters() {
+  view.value = 'all';
+  query.value = '';
+  Object.assign(filters, {
+    stage: '',
+    task_type: '',
+    assignee_id: '',
+    car: '',
+    lead_source: '',
+    sort: 'due_soonest',
+  });
+}
+function selectView(next) {
+  if (next === 'new') filters.stage = '';
+  if (['mine', 'unassigned_filter'].includes(next)) filters.assignee_id = '';
+  view.value = next;
+}
 onMounted(() => {
   store.dispatch('agents/get');
   load();
@@ -233,7 +307,7 @@ onMounted(() => {
             ? 'bg-n-brand text-white'
             : 'text-n-slate-11 hover:bg-n-alpha-2'
         "
-        @click="view = filter"
+        @click="selectView(filter)"
       >
         {{ t(`SOOR_SALES_TASKS.${filter.toUpperCase()}`) }}
       </button>
@@ -244,6 +318,66 @@ onMounted(() => {
         :placeholder="t('SOOR_SALES_TASKS.SEARCH')"
         :aria-label="t('SOOR_SALES_TASKS.SEARCH')"
       />
+    </div>
+
+    <div class="grid gap-3 border-b border-n-weak bg-n-solid-1 px-6 py-3 sm:grid-cols-2 xl:grid-cols-4">
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.STAGE') }}
+        <select v-model="filters.stage" :disabled="view === 'new'" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12 disabled:opacity-50">
+          <option value="">{{ t('SOOR_SALES_TASKS.ALL_STAGES') }}</option>
+          <option v-for="stage in stages" :key="stage" :value="stage">{{ stageLabel(stage) }}</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.TASK') }}
+        <select v-model="filters.task_type" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12">
+          <option value="">{{ t('SOOR_SALES_TASKS.ALL_TASK_TYPES') }}</option>
+          <option v-for="type in taskTypes" :key="type" :value="type">{{ typeLabel(type) }}</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.OWNER') }}
+        <select v-model="filters.assignee_id" :disabled="['mine', 'unassigned_filter'].includes(view)" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12 disabled:opacity-50">
+          <option value="">{{ t('SOOR_SALES_TASKS.ALL_OWNERS') }}</option>
+          <option value="unassigned">{{ t('SOOR_SALES_TASKS.UNASSIGNED') }}</option>
+          <option v-for="agent in agents" :key="agent.id" :value="agent.id">{{ agent.name }}</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.CAR') }}
+        <select v-model="filters.car" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12">
+          <option value="">{{ t('SOOR_SALES_TASKS.ALL_CARS') }}</option>
+          <option value="with">{{ t('SOOR_SALES_TASKS.WITH_CAR') }}</option>
+          <option value="without">{{ t('SOOR_SALES_TASKS.WITHOUT_CAR') }}</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.LEAD_SOURCE') }}
+        <select v-model="filters.lead_source" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12">
+          <option value="">{{ t('SOOR_SALES_TASKS.ALL_SOURCES') }}</option>
+          <option v-for="source in leadSources" :key="source" :value="source">{{ t(`SOOR_SALES_TASKS.SOURCES.${source.toUpperCase()}`) }}</option>
+          <option value="unrecorded">{{ t('SOOR_SALES_TASKS.SOURCE_NOT_RECORDED') }}</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.SORT_BY') }}
+        <select v-model="filters.sort" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12">
+          <option value="due_soonest">{{ t('SOOR_SALES_TASKS.SORT_DUE_SOONEST') }}</option>
+          <option value="due_latest">{{ t('SOOR_SALES_TASKS.SORT_DUE_LATEST') }}</option>
+          <option value="joined_newest">{{ t('SOOR_SALES_TASKS.SORT_JOINED_NEWEST') }}</option>
+          <option value="joined_oldest">{{ t('SOOR_SALES_TASKS.SORT_JOINED_OLDEST') }}</option>
+          <option value="searched_newest">{{ t('SOOR_SALES_TASKS.SORT_SEARCHED_NEWEST') }}</option>
+          <option value="searched_oldest">{{ t('SOOR_SALES_TASKS.SORT_SEARCHED_OLDEST') }}</option>
+          <option value="customer_az">{{ t('SOOR_SALES_TASKS.SORT_CUSTOMER_AZ') }}</option>
+          <option value="customer_za">{{ t('SOOR_SALES_TASKS.SORT_CUSTOMER_ZA') }}</option>
+        </select>
+      </label>
+      <button type="button" class="self-end justify-self-start rounded-lg border border-n-weak px-3 py-2 text-sm text-n-slate-12 hover:bg-n-alpha-2" @click="resetFilters">
+        {{ t('SOOR_SALES_TASKS.CLEAR_FILTERS') }}
+      </button>
+      <span class="self-end text-sm text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.RESULT_COUNT', { count: meta.total }) }}
+      </span>
     </div>
 
     <div class="min-h-0 flex-1 overflow-auto bg-n-solid-1">
@@ -258,7 +392,7 @@ onMounted(() => {
           {{ t('SOOR_SALES_TASKS.EMPTY') }}
         </div>
         <p
-          v-if="!meta.total && view === 'all'"
+          v-if="!meta.total && !hasActiveFilters"
           class="mt-2 text-sm text-n-slate-11"
         >
           {{ t('SOOR_SALES_TASKS.EMPTY_SOURCE') }}
@@ -472,14 +606,7 @@ onMounted(() => {
               class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
             >
               <option
-                v-for="type in [
-                  'welcome_call',
-                  'follow_up',
-                  'documents',
-                  'quote',
-                  'renewal',
-                  'other',
-                ]"
+                v-for="type in taskTypes"
                 :key="type"
                 :value="type"
               >
@@ -494,15 +621,7 @@ onMounted(() => {
               class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
             >
               <option
-                v-for="stage in [
-                  'new',
-                  'attempted',
-                  'contacted',
-                  'follow_up',
-                  'quote_sent',
-                  'won',
-                  'lost',
-                ]"
+                v-for="stage in stages"
                 :key="stage"
                 :value="stage"
               >

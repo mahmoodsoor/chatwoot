@@ -3,7 +3,34 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
 
   def index
     scope = Current.account.soor_sales_tasks.includes(:assignee, :conversation)
-    scope = scope.where(stage: params[:stage]) if SoorSalesTask::STAGES.include?(params[:stage])
+    if params[:stage].present?
+      return render_error('Invalid stage') unless SoorSalesTask::STAGES.include?(params[:stage])
+
+      scope = scope.where(stage: params[:stage])
+    end
+    if params[:task_type].present?
+      return render_error('Invalid task type') unless SoorSalesTask::TASK_TYPES.include?(params[:task_type])
+
+      scope = scope.where(task_type: params[:task_type])
+    end
+    if params[:assignee_id].present?
+      assignee_id = params[:assignee_id].to_s
+      unless assignee_id == 'unassigned'
+        return render_error('Invalid owner') unless assignee_id.match?(/\A\d+\z/) && Current.account.account_users.exists?(user_id: assignee_id)
+      end
+      scope = scope.where(assignee_id: assignee_id == 'unassigned' ? nil : assignee_id)
+    end
+    if params[:car].present?
+      return render_error('Invalid car filter') unless %w[with without].include?(params[:car])
+
+      car_present = "COALESCE(NULLIF(vehicle->>'make', ''), NULLIF(vehicle->>'model', ''), NULLIF(vehicle->>'year', '')) IS NOT NULL"
+      scope = scope.where(params[:car] == 'with' ? car_present : "NOT (#{car_present})")
+    end
+    if params[:lead_source].present?
+      return render_error('Invalid source') unless SoorSalesTask::LEAD_SOURCES.include?(params[:lead_source]) || params[:lead_source] == 'unrecorded'
+
+      scope = scope.where(lead_source: params[:lead_source] == 'unrecorded' ? nil : params[:lead_source])
+    end
     scope = scope.where(assignee_id: Current.user.id) if params[:mine] == 'true'
     scope = scope.where(assignee_id: nil) if params[:unassigned] == 'true'
     scope = scope.where('due_at < ?', Time.current) if params[:overdue] == 'true'
@@ -11,9 +38,20 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       query = "%#{ActiveRecord::Base.sanitize_sql_like(params[:q].to_s.strip.first(100))}%"
       scope = scope.where('customer_name ILIKE :q OR phone_number ILIKE :q OR email ILIKE :q', q: query)
     end
+    sort_order = case params[:sort].presence || 'due_soonest'
+                 when 'due_soonest' then Arel.sql('due_at ASC NULLS LAST, created_at ASC, id ASC')
+                 when 'due_latest' then Arel.sql('due_at DESC NULLS LAST, created_at DESC, id DESC')
+                 when 'joined_newest' then Arel.sql('registered_at DESC NULLS LAST, id DESC')
+                 when 'joined_oldest' then Arel.sql('registered_at ASC NULLS LAST, id ASC')
+                 when 'searched_newest' then Arel.sql("NULLIF(vehicle->>'searched_at', '') DESC NULLS LAST, id DESC")
+                 when 'searched_oldest' then Arel.sql("NULLIF(vehicle->>'searched_at', '') ASC NULLS LAST, id ASC")
+                 when 'customer_az' then Arel.sql('LOWER(customer_name) ASC, id ASC')
+                 when 'customer_za' then Arel.sql('LOWER(customer_name) DESC, id DESC')
+                 end
+    return render_error('Invalid sort order') unless sort_order
+
     page = params[:page].to_i.clamp(1, 10_000)
-    tasks = scope.order(Arel.sql('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END'), :due_at, :created_at)
-                 .page(page).per(30)
+    tasks = scope.order(sort_order).page(page).per(30)
     render json: {
       tasks: tasks.map { |task| serialize(task) },
       meta: { page: page, total: tasks.total_count, pages: tasks.total_pages },
