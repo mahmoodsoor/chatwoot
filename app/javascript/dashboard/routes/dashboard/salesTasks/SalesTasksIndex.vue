@@ -22,6 +22,7 @@ const filters = reactive({
   assignee_id: '',
   car: '',
   lead_source: '',
+  call_outcome: '',
   sort: 'due_soonest',
 });
 const loading = ref(false);
@@ -35,7 +36,58 @@ const form = reactive({
   due_at: '',
   outcome: '',
   lead_source: '',
+  call_outcome: '',
+  call_outcome_detail: '',
 });
+const callOutcomes = [
+  'expensive',
+  'other_company',
+  'not_due',
+  'end_of_month',
+  'other',
+  'no_available_quotes',
+];
+const insuranceCompanies = [
+  'Al Hilal Life',
+  'Al Rajhi Insurance',
+  'Al Saqr Saudi Insurance',
+  'Alhilal Takaful',
+  'Allied Cooperative Insurance Group',
+  'Amana Gulf Insurance',
+  'Arab Insurance Group (Arig)',
+  'Arabia Insurance',
+  'Arabia Insurance International',
+  'Bahrain Kuwait Insurance (GIG Bahrain)',
+  'Bahrain National Insurance (bni)',
+  'Bahrain National Life',
+  'Cigna Life Insurance',
+  'Gulf Insurance Group (GIG Gulf)',
+  'Gulf Union Insurance',
+  'Hannover ReTakaful',
+  'Hannover Rueck',
+  'International Insurance',
+  'International Islamic Insurance',
+  'Iran Insurance',
+  'KFH Takaful',
+  'LIVA Insurance',
+  'Life Insurance Corporation (International)',
+  'Masheed Captive Insurance',
+  'Medgulf Bahrain',
+  'Medgulf Takaful',
+  'MetLife Bahrain',
+  'Orient Insurance',
+  'Saudi Allied Cooperative Insurance',
+  'Saudi Arabian Insurance Company (Damana)',
+  'Saudi National Insurance',
+  'Solidarity Bahrain',
+  "T'azur",
+  'Takaful International',
+  'The New India Assurance',
+  'Trust Re',
+  'United Insurance',
+  'Zurich Insurance',
+  'Zurich International Life',
+];
 const leadSources = [
   'instagram',
   'tiktok',
@@ -71,6 +123,8 @@ const apiUrl = computed(
 );
 const stageLabel = stage => t(`SOOR_SALES_TASKS.STAGE_LABELS.${stage}`);
 const typeLabel = type => t(`SOOR_SALES_TASKS.TYPE_LABELS.${type}`);
+const callOutcomeLabel = outcome =>
+  outcome ? t(`SOOR_SALES_TASKS.CALL_OUTCOMES.${outcome.toUpperCase()}`) : '—';
 const carLabel = task => {
   const car = task.vehicle || {};
   return (
@@ -130,7 +184,8 @@ const hasActiveFilters = computed(() =>
   filters.task_type ||
   filters.assignee_id ||
   filters.car ||
-  filters.lead_source
+  filters.lead_source ||
+  filters.call_outcome
 );
 
 async function load(page = 1) {
@@ -145,6 +200,7 @@ async function load(page = 1) {
       assignee_id: filters.assignee_id || undefined,
       car: filters.car || undefined,
       lead_source: filters.lead_source || undefined,
+      call_outcome: filters.call_outcome || undefined,
       sort: filters.sort,
     };
     if (view.value === 'mine') params.mine = true;
@@ -172,6 +228,8 @@ function open(task) {
     due_at: localDateTime(task.due_at),
     outcome: '',
     lead_source: task.lead_source || '',
+    call_outcome: task.call_outcome || '',
+    call_outcome_detail: task.call_outcome_detail || '',
   });
 }
 
@@ -189,6 +247,8 @@ async function save() {
           due_at: form.due_at ? new Date(form.due_at).toISOString() : '',
           outcome: form.outcome.trim(),
           lead_source: form.lead_source,
+          call_outcome: form.call_outcome,
+          call_outcome_detail: form.call_outcome_detail.trim(),
         },
       }
     );
@@ -228,6 +288,7 @@ watch(
     filters.assignee_id,
     filters.car,
     filters.lead_source,
+    filters.call_outcome,
     filters.sort,
   ],
   () => {
@@ -244,6 +305,7 @@ function resetFilters() {
     assignee_id: '',
     car: '',
     lead_source: '',
+    call_outcome: '',
     sort: 'due_soonest',
   });
 }
@@ -320,7 +382,7 @@ onMounted(() => {
       />
     </div>
 
-    <div class="grid gap-3 border-b border-n-weak bg-n-solid-1 px-6 py-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-3 border-b border-n-weak bg-n-solid-1 px-6 py-3 sm:grid-cols-2 xl:grid-cols-5">
       <label class="grid gap-1 text-xs text-n-slate-11">
         {{ t('SOOR_SALES_TASKS.STAGE') }}
         <select v-model="filters.stage" :disabled="view === 'new'" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12 disabled:opacity-50">
@@ -357,6 +419,14 @@ onMounted(() => {
           <option value="">{{ t('SOOR_SALES_TASKS.ALL_SOURCES') }}</option>
           <option v-for="source in leadSources" :key="source" :value="source">{{ t(`SOOR_SALES_TASKS.SOURCES.${source.toUpperCase()}`) }}</option>
           <option value="unrecorded">{{ t('SOOR_SALES_TASKS.SOURCE_NOT_RECORDED') }}</option>
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs text-n-slate-11">
+        {{ t('SOOR_SALES_TASKS.CALL_OUTCOME') }}
+        <select v-model="filters.call_outcome" class="rounded-lg border border-n-weak bg-n-background px-3 py-2 text-sm text-n-slate-12">
+          <option value="">{{ t('SOOR_SALES_TASKS.ALL_CALL_OUTCOMES') }}</option>
+          <option v-for="outcome in callOutcomes" :key="outcome" :value="outcome">{{ callOutcomeLabel(outcome) }}</option>
+          <option value="unrecorded">{{ t('SOOR_SALES_TASKS.CALL_OUTCOME_NOT_RECORDED') }}</option>
         </select>
       </label>
       <label class="grid gap-1 text-xs text-n-slate-11">
@@ -398,7 +468,7 @@ onMounted(() => {
           {{ t('SOOR_SALES_TASKS.EMPTY_SOURCE') }}
         </p>
       </div>
-      <table v-else class="w-full min-w-[1200px] text-left text-sm">
+      <table v-else class="w-full min-w-[1400px] text-left text-sm">
         <thead
           class="sticky top-0 z-10 border-b border-n-weak bg-n-solid-2 text-[11px] uppercase tracking-wide text-n-slate-10"
         >
@@ -420,6 +490,9 @@ onMounted(() => {
             </th>
             <th class="w-32 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.STAGE') }}
+            </th>
+            <th class="w-44 px-4 py-3 font-semibold">
+              {{ t('SOOR_SALES_TASKS.CALL_OUTCOME') }}
             </th>
             <th class="w-28 px-4 py-3 font-semibold">
               {{ t('SOOR_SALES_TASKS.OWNER') }}
@@ -483,6 +556,12 @@ onMounted(() => {
                 :class="stageClass(task.stage)"
               >
                 {{ stageLabel(task.stage) }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-n-slate-11">
+              <span>{{ callOutcomeLabel(task.call_outcome) }}</span>
+              <span v-if="task.call_outcome_detail" class="mt-0.5 block max-w-40 truncate text-xs text-n-slate-10" :title="task.call_outcome_detail">
+                {{ task.call_outcome_detail }}
               </span>
             </td>
             <td class="px-4 py-3 text-n-slate-11">
@@ -657,6 +736,44 @@ onMounted(() => {
               maxlength="3000"
               class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
               :placeholder="t('SOOR_SALES_TASKS.OUTCOME_PLACEHOLDER')"
+            />
+          </label>
+          <label class="grid gap-1 text-sm text-n-slate-12">
+            {{ t('SOOR_SALES_TASKS.CALL_OUTCOME') }}
+            <select
+              v-model="form.call_outcome"
+              class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
+              @change="form.call_outcome_detail = ''"
+            >
+              <option value="">{{ t('SOOR_SALES_TASKS.CALL_OUTCOME_PLACEHOLDER') }}</option>
+              <option v-for="outcome in callOutcomes" :key="outcome" :value="outcome">
+                {{ callOutcomeLabel(outcome) }}
+              </option>
+            </select>
+          </label>
+          <label v-if="form.call_outcome === 'other_company'" class="grid gap-1 text-sm text-n-slate-12">
+            {{ t('SOOR_SALES_TASKS.INSURANCE_COMPANY') }}
+            <input
+              v-model="form.call_outcome_detail"
+              list="soor-insurance-companies"
+              required
+              maxlength="180"
+              class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
+              :placeholder="t('SOOR_SALES_TASKS.INSURANCE_COMPANY_PLACEHOLDER')"
+            />
+            <datalist id="soor-insurance-companies">
+              <option v-for="company in insuranceCompanies" :key="company" :value="company" />
+            </datalist>
+            <span class="text-xs text-n-slate-10">{{ t('SOOR_SALES_TASKS.INSURANCE_COMPANY_HINT') }}</span>
+          </label>
+          <label v-if="form.call_outcome === 'other'" class="grid gap-1 text-sm text-n-slate-12">
+            {{ t('SOOR_SALES_TASKS.OTHER_REASON') }}
+            <input
+              v-model="form.call_outcome_detail"
+              required
+              maxlength="180"
+              class="rounded-lg border border-n-weak bg-n-background px-3 py-2"
+              :placeholder="t('SOOR_SALES_TASKS.OTHER_REASON_PLACEHOLDER')"
             />
           </label>
           <label class="grid gap-1 text-sm text-n-slate-12">

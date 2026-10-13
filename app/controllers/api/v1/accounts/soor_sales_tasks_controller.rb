@@ -31,6 +31,12 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
 
       scope = scope.where(lead_source: params[:lead_source] == 'unrecorded' ? nil : params[:lead_source])
     end
+    if params[:call_outcome].present?
+      valid_outcome = SoorSalesTask::CALL_OUTCOMES.include?(params[:call_outcome]) || params[:call_outcome] == 'unrecorded'
+      return render_error('Invalid call outcome') unless valid_outcome
+
+      scope = scope.where(call_outcome: params[:call_outcome] == 'unrecorded' ? nil : params[:call_outcome])
+    end
     scope = scope.where(assignee_id: Current.user.id) if params[:mine] == 'true'
     scope = scope.where(assignee_id: nil) if params[:unassigned] == 'true'
     scope = scope.where('due_at < ?', Time.current) if params[:overdue] == 'true'
@@ -61,7 +67,8 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
 
   def update
     task = Current.account.soor_sales_tasks.find(params[:id])
-    updates = params.require(:task).permit(:task_type, :stage, :assignee_id, :due_at, :outcome, :lead_source)
+    updates = params.require(:task).permit(:task_type, :stage, :assignee_id, :due_at, :outcome, :lead_source,
+                                           :call_outcome, :call_outcome_detail)
     outcome = updates.delete(:outcome).to_s.strip
     return render_error('Outcome is too long') if outcome.length > 3000
     return render_error('Invalid task type') if updates[:task_type].present? && !SoorSalesTask::TASK_TYPES.include?(updates[:task_type])
@@ -70,6 +77,18 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       updates[:lead_source] = updates[:lead_source].presence
       return render_error('Invalid source') if updates[:lead_source] && !SoorSalesTask::LEAD_SOURCES.include?(updates[:lead_source])
     end
+    if updates.key?(:call_outcome)
+      updates[:call_outcome] = updates[:call_outcome].presence
+      return render_error('Invalid call outcome') if updates[:call_outcome] && !SoorSalesTask::CALL_OUTCOMES.include?(updates[:call_outcome])
+
+      detail = updates[:call_outcome_detail].to_s.strip
+      return render_error('Call outcome detail is too long') if detail.length > 180
+      needs_detail = %w[other_company other].include?(updates[:call_outcome])
+      return render_error('Specify the insurance company or other reason') if needs_detail && detail.blank?
+
+      updates[:call_outcome_detail] = needs_detail ? detail : nil
+    end
+    return render_error('Call outcome is required with a detail') if updates.key?(:call_outcome_detail) && !updates.key?(:call_outcome)
 
     if updates.key?(:assignee_id)
       id = updates[:assignee_id].presence
@@ -83,12 +102,12 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
 
       updates[:due_at] = due
     end
-    if %w[attempted contacted follow_up quote_sent won lost].include?(updates[:stage]) && outcome.blank?
+    if %w[attempted contacted follow_up quote_sent won lost].include?(updates[:stage]) && outcome.blank? && updates[:call_outcome].blank?
       return render_error('Record what happened before changing this stage')
     end
 
     task.with_lock do
-      before = task.attributes.slice('task_type', 'stage', 'assignee_id', 'due_at', 'lead_source')
+      before = task.attributes.slice('task_type', 'stage', 'assignee_id', 'due_at', 'lead_source', 'call_outcome', 'call_outcome_detail')
       task.assign_attributes(updates.to_h)
       changed = before.any? { |key, value| task.public_send(key) != value }
       return render_error('Add an outcome or change the task') unless changed || outcome.present?
@@ -100,6 +119,8 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       content += "\nDue: #{task.due_at.in_time_zone('Asia/Bahrain').strftime('%d %b %Y, %H:%M %Z')}" if task.due_at
       content += "\nOwner: #{task.assignee&.name || 'Unassigned'}"
       content += "\nHow they heard about SOOR: #{task.lead_source.humanize}" if task.lead_source.present?
+      content += "\nCustomer call outcome: #{task.call_outcome.humanize}" if task.call_outcome.present?
+      content += " — #{task.call_outcome_detail}" if task.call_outcome_detail.present?
       content += "\n#{outcome}" if outcome.present?
       Messages::MessageBuilder.new(Current.user, conversation, { content: content, private: true, message_type: 'outgoing' }).perform
     end
@@ -167,7 +188,7 @@ class Api::V1::Accounts::SoorSalesTasksController < Api::V1::Accounts::BaseContr
       id: task.id, zoho_contact_id: task.zoho_contact_id,
       customer_name: task.customer_name, phone_number: task.phone_number, email: task.email,
       vehicle: task.vehicle, task_type: task.task_type, stage: task.stage,
-      lead_source: task.lead_source,
+      lead_source: task.lead_source, call_outcome: task.call_outcome, call_outcome_detail: task.call_outcome_detail,
       registered_at: task.registered_at, due_at: task.due_at, last_updated_at: task.last_updated_at,
       assignee: task.assignee && { id: task.assignee.id, name: task.assignee.name },
       conversation_id: task.conversation&.display_id
