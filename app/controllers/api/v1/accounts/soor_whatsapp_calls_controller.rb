@@ -29,8 +29,29 @@ class Api::V1::Accounts::SoorWhatsappCallsController < Api::V1::Accounts::BaseCo
 
       scope = scope.where(source: params[:source] == 'unrecorded' ? nil : params[:source])
     end
+    if params[:phone].present?
+      phone = params[:phone].to_s.strip
+      return render_error('Enter 2 to 20 phone digits') unless phone.match?(/\A\+?\d{2,20}\z/)
+
+      scope = scope.where('phone_number LIKE ?', "%#{phone.delete_prefix('+')}%")
+    end
+    if params[:outcome_status].present?
+      case params[:outcome_status]
+      when 'recorded' then scope = scope.where.not(outcome: [nil, ''])
+      when 'missing' then scope = scope.where(outcome: [nil, ''])
+      else return render_error('Invalid outcome filter')
+      end
+    end
     scope = filter_status(scope, params[:status]) if params[:status].present?
     return render_error('Invalid call status') unless scope
+
+    sort_order = case params[:sort].presence || 'newest'
+                 when 'newest' then { started_at: :desc, id: :desc }
+                 when 'oldest' then { started_at: :asc, id: :asc }
+                 when 'longest' then Arel.sql('(ended_at - answered_at) DESC NULLS LAST, started_at DESC, id DESC')
+                 when 'shortest' then Arel.sql('(ended_at - answered_at) ASC NULLS LAST, started_at DESC, id DESC')
+                 end
+    return render_error('Invalid sort order') unless sort_order
 
     total = scope.count
     answered = scope.where.not(answered_at: nil).count
@@ -44,7 +65,7 @@ class Api::V1::Accounts::SoorWhatsappCallsController < Api::V1::Accounts::BaseCo
     agent_answered = scope.where.not(agent_id: nil).where.not(answered_at: nil).group(:agent_id).count
     names = Current.account.users.where(id: agent_counts.keys).pluck(:id, :name).to_h
     page = params[:page].to_i.clamp(1, 10_000)
-    records = scope.includes(:agent, :conversation).order(started_at: :desc).page(page).per(25)
+    records = scope.includes(:agent, :conversation).order(sort_order).page(page).per(25)
     render json: {
       metrics: { total: total, answered: answered, missed: missed,
                  answer_rate: total.zero? ? 0 : (answered * 100.0 / total).round(1),

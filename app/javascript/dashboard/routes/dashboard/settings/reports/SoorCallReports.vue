@@ -12,14 +12,18 @@ monthAgo.setDate(today.getDate() - 29);
 const dateValue = value =>
   `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
 
-const filters = ref({
+const defaultFilters = () => ({
   from: dateValue(monthAgo),
   to: dateValue(today),
   direction: '',
   agent_id: '',
   status: '',
   source: '',
+  phone: '',
+  outcome_status: '',
+  sort: 'newest',
 });
+const filters = ref(defaultFilters());
 const sources = [
   'instagram',
   'tiktok',
@@ -63,6 +67,10 @@ const fetchReport = async () => {
 const applyFilters = () => {
   page.value = 1;
   fetchReport();
+};
+const resetFilters = () => {
+  filters.value = defaultFilters();
+  applyFilters();
 };
 const changePage = next => {
   page.value = next;
@@ -121,9 +129,33 @@ onMounted(fetchReport);
           <option value="unrecorded">{{ t('SOOR_CALL_REPORTS.UNRECORDED') }}</option>
         </select>
       </label>
-      <div class="col-span-2 flex items-end">
+      <label class="flex flex-col gap-1 text-sm text-n-slate-11">
+        {{ t('SOOR_CALL_REPORTS.PHONE') }}
+        <input v-model.trim="filters.phone" type="search" inputmode="tel" maxlength="21" :placeholder="t('SOOR_CALL_REPORTS.PHONE_PLACEHOLDER')" class="rounded-md border border-n-weak bg-n-surface-1 p-2 text-n-slate-12" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm text-n-slate-11">
+        {{ t('SOOR_CALL_REPORTS.OUTCOME_STATUS') }}
+        <select v-model="filters.outcome_status" class="rounded-md border border-n-weak bg-n-surface-1 p-2 text-n-slate-12">
+          <option value="">{{ t('SOOR_CALL_REPORTS.ALL') }}</option>
+          <option value="recorded">{{ t('SOOR_CALL_REPORTS.OUTCOME_RECORDED') }}</option>
+          <option value="missing">{{ t('SOOR_CALL_REPORTS.OUTCOME_MISSING') }}</option>
+        </select>
+      </label>
+      <label class="flex flex-col gap-1 text-sm text-n-slate-11">
+        {{ t('SOOR_CALL_REPORTS.SORT') }}
+        <select v-model="filters.sort" class="rounded-md border border-n-weak bg-n-surface-1 p-2 text-n-slate-12">
+          <option value="newest">{{ t('SOOR_CALL_REPORTS.SORT_NEWEST') }}</option>
+          <option value="oldest">{{ t('SOOR_CALL_REPORTS.SORT_OLDEST') }}</option>
+          <option value="longest">{{ t('SOOR_CALL_REPORTS.SORT_LONGEST') }}</option>
+          <option value="shortest">{{ t('SOOR_CALL_REPORTS.SORT_SHORTEST') }}</option>
+        </select>
+      </label>
+      <div class="col-span-2 flex items-end gap-2">
         <button type="submit" :disabled="loading" class="rounded-md bg-n-brand px-4 py-2 text-white disabled:opacity-50">
           {{ t('SOOR_CALL_REPORTS.APPLY') }}
+        </button>
+        <button type="button" :disabled="loading" class="rounded-md border border-n-weak px-4 py-2 text-n-slate-12 disabled:opacity-50" @click="resetFilters">
+          {{ t('SOOR_CALL_REPORTS.RESET') }}
         </button>
       </div>
     </form>
