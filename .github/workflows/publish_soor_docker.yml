@@ -5,6 +5,7 @@ on:
     branches:
       - soor-whatsapp-calling-v4.18
       - soor-sales-tasks
+      - soor-chatwoot-v4.19.1
   workflow_dispatch:
 
 env:
@@ -43,6 +44,7 @@ jobs:
             type=raw,value=soor-v4.18.0-calling,enable=${{ github.ref_name == 'soor-whatsapp-calling-v4.18' }}
             type=raw,value=soor-latest,enable=${{ github.ref_name == 'soor-whatsapp-calling-v4.18' }}
             type=raw,value=soor-sales-tasks-candidate,enable=${{ github.ref_name == 'soor-sales-tasks' }}
+            type=raw,value=soor-v4.19.1,enable=${{ github.ref_name == 'soor-chatwoot-v4.19.1' }}
 
       - name: Build and publish
         uses: docker/build-push-action@v6
